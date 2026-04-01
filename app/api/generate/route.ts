@@ -21,15 +21,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Priority: .env.local
-    let token: string | undefined = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    // 1. Priority: x-github-token header (User-provided)
+    const headerToken = request.headers.get('x-github-token');
+    let token: string | undefined = headerToken || undefined;
 
-    // 2. Fallback: Session
+    // 2. Fallback: .env.local (ONLY in Dev)
+    if (!token && process.env.NODE_ENV === 'development') {
+      token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    }
+
+    // 3. Fallback: Session
     if (!token) {
       const { data: { session: authSession } } = await supabase.auth.getSession();
       token = authSession?.provider_token || undefined;
 
-      // 3. Fallback: DB
+      // 4. Fallback: DB
       if (!token && authSession?.user?.id) {
         const { data: tokenData } = await supabaseAdmin
           .from('user_tokens')

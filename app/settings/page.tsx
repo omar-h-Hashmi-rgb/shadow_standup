@@ -13,8 +13,15 @@ import {
 
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
+  const [githubToken, setGithubToken] = useState('');
+
+  React.useEffect(() => {
+    const savedToken = localStorage.getItem('github_token');
+    if (savedToken) setGithubToken(savedToken);
+  }, []);
 
   const handleSave = () => {
+    localStorage.setItem('github_token', githubToken);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -54,6 +61,8 @@ export default function SettingsPage() {
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Personal Access Token (Fallback)</label>
                 <input 
                   type="password" 
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxx"
                   className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 focus:bg-white focus:border-blue-500 transition-all font-mono text-sm outline-none"
                 />

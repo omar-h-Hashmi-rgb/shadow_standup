@@ -2,17 +2,23 @@ import { NextResponse } from 'next/server';
 import { fetchUserRepositories } from '@/lib/github';
 import { supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // 1. Priority: GITHUB_PERSONAL_ACCESS_TOKEN from .env.local
-    let token: string | undefined = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    // 1. Priority: x-github-token header (User-provided)
+    const headerToken = request.headers.get('x-github-token');
+    let token: string | undefined = headerToken || undefined;
 
-    // 2. Fallback: Supabase Session provider_token
+    // 2. Fallback: GITHUB_PERSONAL_ACCESS_TOKEN from .env.local (ONLY in Dev)
+    if (!token && process.env.NODE_ENV === 'development') {
+      token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    }
+
+    // 3. Fallback: Supabase Session provider_token
     if (!token) {
       const { data: { session } } = await supabase.auth.getSession();
       token = session?.provider_token || undefined;
       
-      // 3. Fallback: Persisted token in DB
+      // 4. Fallback: Persisted token in DB
       if (!token && session?.user?.id) {
         const { data: tokenData } = await supabase
           .from('user_tokens')

@@ -30,21 +30,26 @@ export default function StandupGenerator({
   const [fetchingCommits, setFetchingCommits] = useState(false);
   const [result, setResult] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [token, setToken] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    fetchRepos();
+    const savedToken = localStorage.getItem('github_token');
+    if (savedToken) {
+      setToken(savedToken);
+      fetchRepos(savedToken);
+    }
+    setCheckingAuth(false);
   }, []);
 
-  const fetchRepos = async () => {
+  const fetchRepos = async (authToken: string) => {
     try {
-      const res = await fetch('/api/github-all-repos');
+      const res = await fetch('/api/github-all-repos', {
+        headers: { 'x-github-token': authToken }
+      });
       const data = await res.json();
       if (data.success) {
         setRepos(data.repos);
-      } else if (data.error && data.repos?.length > 0) {
-        // Fallback case
-        setRepos(data.repos);
-        setError('Using fallback token...');
       } else {
         setError(data.error || 'Failed to load repositories.');
       }
@@ -59,11 +64,13 @@ export default function StandupGenerator({
     setSelectedShas([]);
     setCommits([]);
 
-    if (fullRepo) {
+    if (fullRepo && token) {
       const [owner, repo] = fullRepo.split('/');
       setFetchingCommits(true);
       try {
-        const res = await fetch(`/api/commits?owner=${owner}&repo=${repo}`);
+        const res = await fetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+          headers: { 'x-github-token': token }
+        });
         const data = await res.json();
         if (data.success) setCommits(data.commits);
       } catch (err) {
@@ -89,7 +96,7 @@ export default function StandupGenerator({
   };
 
   const generateStandup = async () => {
-    if (!selectedRepo) return;
+    if (!selectedRepo || !token) return;
     setLoading(true);
     setError('');
     
@@ -98,7 +105,10 @@ export default function StandupGenerator({
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-github-token': token
+        },
         body: JSON.stringify({ owner, repo, commitShas: selectedShas, userId }),
       });
 
@@ -115,6 +125,38 @@ export default function StandupGenerator({
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center text-gray-400 space-y-4">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs font-black uppercase tracking-widest">Checking Authentication...</p>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div className="bg-white rounded-[40px] border-2 border-gray-100 p-12 text-center space-y-8 shadow-sm">
+        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[32px] flex items-center justify-center mx-auto shadow-inner">
+          <ShieldCheck size={40} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tighter">Welcome to Shadow Standup!</h2>
+          <p className="text-gray-500 font-medium max-w-sm mx-auto leading-relaxed text-sm">
+            To generate reports from your GitHub activity, you need to configure your Personal Access Token (PAT).
+          </p>
+        </div>
+        <a 
+          href="/settings"
+          className="inline-flex items-center gap-3 bg-gray-950 text-white font-black py-4 px-10 rounded-2xl hover:bg-blue-600 transition-all active:scale-[0.98] shadow-xl shadow-gray-500/10 uppercase tracking-widest text-xs"
+        >
+          <Plus size={18} />
+          Configure GitHub Token
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
