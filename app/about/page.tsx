@@ -416,8 +416,8 @@ function OrbitFeatures() {
                 key={deg}
                 x1={210}
                 y1={210}
-                x2={210 + r * Math.cos(rad)}
-                y2={210 + r * Math.sin(rad)}
+                x2={Number((210 + r * Math.cos(rad)).toFixed(3))}
+                y2={Number((210 + r * Math.sin(rad)).toFixed(3))}
                 stroke="rgba(139,125,247,0.06)"
                 strokeWidth="1"
               />
