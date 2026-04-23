@@ -11,10 +11,13 @@ import {
   Loader2, 
   MessageSquare,
   Download,
-  FileText
+  FileText,
+  Trash2
 } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { StandupPDF } from '@/components/StandupPDF';
+
+import ReactMarkdown from 'react-markdown';
 
 export default function HistoryPage() {
   const [session, setSession] = useState<any>(null);
@@ -48,6 +51,22 @@ export default function HistoryPage() {
     setLoading(false);
   };
 
+  const deleteStandup = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this report?')) return;
+    
+    const { error } = await supabase
+      .from('history')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert('Failed to delete: ' + error.message);
+    } else {
+      setStandups(prev => prev.filter(s => s.id !== id));
+      if (selectedStandup?.id === id) setSelectedStandup(null);
+    }
+  };
+
   if (!session && !loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
@@ -57,7 +76,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <header className="bg-white/80 border-b border-gray-200 px-8 py-6 sticky top-0 z-20 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -108,7 +127,14 @@ export default function HistoryPage() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => deleteStandup(item.id)}
+                      className="p-3.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all active:scale-[0.95] border border-transparent hover:border-red-100"
+                      title="Delete Report"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                     <button 
                       onClick={() => setSelectedStandup(item)}
                       className="px-8 py-3.5 text-sm font-black bg-gray-950 text-white rounded-2xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] uppercase tracking-widest"
@@ -146,7 +172,7 @@ export default function HistoryPage() {
       {selectedStandup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-gray-950/60 backdrop-blur-md transition-opacity" 
+            className="absolute inset-0 bg-gray-950/80 backdrop-blur-md transition-opacity" 
             onClick={() => setSelectedStandup(null)}
           />
           <div className="relative bg-white w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl border-2 border-white/20 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
@@ -156,8 +182,8 @@ export default function HistoryPage() {
                   <MessageSquare size={20} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-gray-900 tracking-tighter">{selectedStandup.owner}/{selectedStandup.repo}</h2>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Generated on {new Date(selectedStandup.created_at).toLocaleString()}</p>
+                  <h2 className="text-xl font-black text-gray-950 tracking-tighter">{selectedStandup.owner}/{selectedStandup.repo}</h2>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Generated on {new Date(selectedStandup.created_at).toLocaleString()}</p>
                 </div>
               </div>
               <button 
@@ -168,9 +194,11 @@ export default function HistoryPage() {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar prose prose-sm prose-slate max-w-none">
-              <div className="text-gray-600 font-medium leading-relaxed whitespace-pre-wrap">
-                {selectedStandup.content}
+            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
+              <div className="prose prose-slate max-w-none !text-gray-950 prose-headings:!text-gray-950 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-headings:font-black prose-headings:tracking-tighter prose-h3:mt-10 prose-h3:mb-4 prose-h3:border-b prose-h3:pb-2 prose-h3:border-gray-100">
+                <ReactMarkdown>
+                  {selectedStandup.content}
+                </ReactMarkdown>
               </div>
             </div>
 

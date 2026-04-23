@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fetchRecentDiffs } from '@/lib/github';
 import { supabase } from '@/lib/supabase';
-import { model } from '@/lib/gemini';
+import { model as geminiModel } from '@/lib/gemini';
+import { groq } from '@/lib/groq';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize admin client for server-side persistence
@@ -10,9 +11,28 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * Aggressively cleans the report text to remove emojis and special characters.
+ */
+function cleanReportText(text: string): string {
+  if (!text) return '';
+  
+  // 1. Remove Emojis and Symbols
+  let cleaned = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+  
+  // 2. Strip specifically requested symbols
+  cleaned = cleaned.replace(/[🟢🟡🔵✅🚀🛠️📊📈📉📁📎📌📍⚠️🛑🔥💡✨⭐🌟]/g, '');
+  
+  // 3. Optional: Remove markdown headers if user wants pure plain text
+  // cleaned = cleaned.replace(/^#+\s/gm, ''); 
+  
+  return cleaned.trim();
+}
+
 export async function POST(request: Request) {
   try {
-    const { owner, repo, commitShas, userId } = await request.json();
+    const { owner, repo, commitShas, userId, model } = await request.json();
+    const selectedModel = model || 'gemini-2.0-flash';
 
     if (!owner || !repo) {
       return NextResponse.json(
@@ -58,14 +78,12 @@ export async function POST(request: Request) {
     const githubToken = token;
 
     if (commitShas && commitShas.length > 0) {
-      console.log(`Generating diffs for ${commitShas.length} specific commits...`);
       const { fetchCommitDiff, cleanDiff } = require('@/lib/github');
       const diffPromises = commitShas.map((sha: string) => fetchCommitDiff(owner, repo, sha, githubToken));
       const diffs = await Promise.all(diffPromises);
       cleanedDiffs = cleanDiff(diffs.join('\n\n---\n\n'));
       commitsUsed = commitShas.length;
     } else {
-      console.log(`Sniffing recent diffs (last 24h) for ${owner}/${repo}...`);
       cleanedDiffs = await fetchRecentDiffs(owner, repo, githubToken);
       commitsUsed = cleanedDiffs ? 1 : 0; 
     }
@@ -74,31 +92,57 @@ export async function POST(request: Request) {
 
     if (cleanedDiffs) {
       const prompt = `
-        You are an Expert Technical Lead. Read the following code diffs from a daily coding session and generate a professional, concise daily stand-up report.
+        You are an Expert Technical Lead. Read the following code diffs and generate a professional, concise daily stand-up report.
         
-        Format the output in clear Markdown with exactly these three sections:
-        Accomplishments (Focus on high-level business value and key technical changes)
-        Challenges/Blockers (Identify potential risks or difficult logic encountered)
-        Technical Debt/Cleanups (Note any areas requiring refactoring or documentation)
-
-        Rules:
-        - Do NOT use emojis or special icons like circles or symbols.
-        - Use plain headings for each section.
-        - Use bullet points for items.
+        STRICT RULES:
+        1. Use EXACTLY these three sections as Bold Headers (e.g. ### Accomplishments):
+           ### Accomplishments
+           ### Challenges and Blockers
+           ### Technical Debt and Cleanups
+        2. Do NOT use ANY emojis, symbols, or special characters.
+        3. Add EXACTLY two blank lines between each section for clear spacing.
+        4. Use ONLY bold headings and bullet points.
+        5. Do NOT include any introductory or concluding remarks. Just the formatted sections.
+        6. Use professional, clear English.
 
         CODE DIFF DATA:
         ${cleanedDiffs}
       `;
 
-      console.log(`Generating AI summary with gemini-2.5-flash...`);
-      const result = await model.generateContent(prompt);
-      summaryText = result.response.text();
+      try {
+        if (selectedModel.startsWith('gemini')) {
+          console.log(`Using Gemini model: ${selectedModel}`);
+          const result = await geminiModel.generateContent(prompt);
+          summaryText = result.response.text();
+        } else {
+          console.log(`Using Groq model: ${selectedModel}`);
+          const chatCompletion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: selectedModel,
+          });
+          summaryText = chatCompletion.choices[0]?.message?.content || 'Failed to generate with Groq.';
+        }
+      } catch (aiError: any) {
+        console.error('AI Model Failed, trying fallback...', aiError.message);
+        // Fallback to a lightweight Groq model if the selected one fails
+        try {
+          const fallbackCompletion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: 'llama-3.1-8b-instant',
+          });
+          summaryText = fallbackCompletion.choices[0]?.message?.content || 'Fallback failed.';
+        } catch (fallbackError: any) {
+          throw new Error('All AI models failed to respond.');
+        }
+      }
+
+      // Aggressive cleaning of the final text
+      summaryText = cleanReportText(summaryText);
     }
 
     // Save to Supabase
     try {
       const currentUserId = userId;
-
       if (currentUserId) {
         const { data, error } = await supabaseAdmin
           .from('history')

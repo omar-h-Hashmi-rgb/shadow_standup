@@ -59,9 +59,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#111827',
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 25,
+    marginBottom: 12,
     textTransform: 'uppercase',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 4,
   },
   listItem: {
     flexDirection: 'row',
@@ -126,23 +129,33 @@ export const StandupPDF = ({ owner, repo, date, commits, content }: StandupPDFPr
 
         <View style={styles.content}>
           {content.split('\n').map((line, index) => {
-            if (line.trim().startsWith('###') || line.trim().startsWith('**')) {
-              // Clean up markdown headers for PDF display
-              const cleanTitle = line.replace(/[#*]/g, '').trim();
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return null;
+
+            // Check if it's a section title
+            const isSectionTitle = [
+              'Accomplishments',
+              'Challenges and Blockers',
+              'Technical Debt and Cleanups',
+              'Challenges/Blockers',
+              'Technical Debt/Cleanups'
+            ].some(title => trimmedLine.toLowerCase().includes(title.toLowerCase()));
+
+            if (isSectionTitle || trimmedLine.startsWith('###') || trimmedLine.startsWith('**')) {
+              const cleanTitle = trimmedLine.replace(/[#*:]/g, '').trim();
               return <Text key={index} style={styles.sectionTitle}>{cleanTitle}</Text>;
             }
-            if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+
+            if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
               return (
                 <View key={index} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
-                  <Text>{line.substring(2).trim()}</Text>
+                  <Text>{trimmedLine.substring(2).trim()}</Text>
                 </View>
               );
             }
-            if (line.trim()) {
-              return <Text key={index} style={{ marginBottom: 10 }}>{line.trim()}</Text>;
-            }
-            return null;
+
+            return <Text key={index} style={{ marginBottom: 10 }}>{trimmedLine}</Text>;
           })}
         </View>
 

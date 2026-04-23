@@ -32,6 +32,15 @@ export default function StandupGenerator({
   const [error, setError] = useState<string>('');
   const [token, setToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.0-flash');
+
+  const modelOptions = [
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'google' },
+    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'groq' },
+    { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', provider: 'groq' },
+    { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', provider: 'groq' },
+    { id: 'qwen/qwen3-32b', name: 'Qwen 3 32B', provider: 'groq' },
+  ];
 
   useEffect(() => {
     const savedToken = localStorage.getItem('github_token');
@@ -109,7 +118,7 @@ export default function StandupGenerator({
           'Content-Type': 'application/json',
           'x-github-token': token
         },
-        body: JSON.stringify({ owner, repo, commitShas: selectedShas, userId }),
+        body: JSON.stringify({ owner, repo, commitShas: selectedShas, userId, model: selectedModel }),
       });
 
       const data = await res.json();
@@ -163,23 +172,44 @@ export default function StandupGenerator({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Side: Config */}
         <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Select Repository</label>
-            <div className="relative group">
-              <select 
-                value={selectedRepo}
-                onChange={handleRepoChange}
-                className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 pl-12 appearance-none focus:border-blue-500 transition-all font-bold text-gray-800 outline-none hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">Choose a repo...</option>
-                {repos.map((r) => (
-                  <option key={`${r.owner}/${r.name}`} value={`${r.owner}/${r.name}`}>
-                    {r.owner}/{r.name}
-                  </option>
-                ))}
-              </select>
-              <GitCommit className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Select AI Model</label>
+              <div className="relative group">
+                <select 
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 pl-12 appearance-none focus:border-blue-500 transition-all font-bold text-gray-800 outline-none hover:border-gray-200 cursor-pointer shadow-sm"
+                >
+                  {modelOptions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+                <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Select Repository</label>
+              <div className="relative group">
+                <select 
+                  value={selectedRepo}
+                  onChange={handleRepoChange}
+                  className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 pl-12 appearance-none focus:border-blue-500 transition-all font-bold text-gray-800 outline-none hover:border-gray-200 cursor-pointer shadow-sm"
+                >
+                  <option value="">Choose a repo...</option>
+                  {repos.map((r) => (
+                    <option key={`${r.owner}/${r.name}`} value={`${r.owner}/${r.name}`}>
+                      {r.owner}/{r.name}
+                    </option>
+                  ))}
+                </select>
+                <GitCommit className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+              </div>
             </div>
           </div>
 
