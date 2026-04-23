@@ -11,8 +11,9 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 export default function SettingsPage() {
-  const [saved, setSaved] = useState(false);
   const [githubToken, setGithubToken] = useState('');
 
   React.useEffect(() => {
@@ -22,8 +23,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     localStorage.setItem('github_token', githubToken);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    toast.success('Preferences saved successfully');
   };
 
   return (
@@ -112,8 +112,8 @@ export default function SettingsPage() {
                 onClick={handleSave}
                 className="flex items-center gap-2 bg-blue-600 text-white font-black py-4 px-8 rounded-2xl hover:bg-blue-700 transition-all active:scale-[0.98] shadow-lg shadow-blue-200 tracking-widest uppercase text-xs"
               >
-                {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-                {saved ? 'Saved' : 'Save Preferences'}
+                <Save size={16} />
+                Save Preferences
               </button>
             </div>
           </div>

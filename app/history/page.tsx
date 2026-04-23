@@ -16,8 +16,9 @@ import {
 } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { StandupPDF } from '@/components/StandupPDF';
-
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function HistoryPage() {
   const [session, setSession] = useState<any>(null);
@@ -25,6 +26,8 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStandup, setSelectedStandup] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -52,19 +55,23 @@ export default function HistoryPage() {
   };
 
   const deleteStandup = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this report?')) return;
-    
     const { error } = await supabase
       .from('history')
       .delete()
       .eq('id', id);
 
     if (error) {
-      alert('Failed to delete: ' + error.message);
+      toast.error('Failed to delete report');
     } else {
       setStandups(prev => prev.filter(s => s.id !== id));
       if (selectedStandup?.id === id) setSelectedStandup(null);
+      toast.success('Report deleted successfully');
     }
+  };
+
+  const openDeleteConfirm = (id: string) => {
+    setItemToDelete(id);
+    setDeleteConfirmOpen(true);
   };
 
   if (!session && !loading) {
@@ -129,7 +136,7 @@ export default function HistoryPage() {
                   
                   <div className="flex items-center gap-3">
                     <button 
-                      onClick={() => deleteStandup(item.id)}
+                      onClick={() => openDeleteConfirm(item.id)}
                       className="p-3.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all active:scale-[0.95] border border-transparent hover:border-red-100"
                       title="Delete Report"
                     >
@@ -240,7 +247,7 @@ export default function HistoryPage() {
               <button 
                 onClick={() => {
                   navigator.clipboard.writeText(selectedStandup.content);
-                  alert('Copied to clipboard!');
+                  toast.success('Copied to clipboard');
                 }}
                 className="px-10 py-4 bg-gray-950 text-white rounded-2xl font-black shadow-lg shadow-gray-500/20 hover:bg-gray-800 transition-all active:scale-[0.98] uppercase tracking-widest text-xs"
               >
@@ -250,6 +257,16 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => itemToDelete && deleteStandup(itemToDelete)}
+        title="Delete Report"
+        message="Are you sure you want to delete this report? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }
