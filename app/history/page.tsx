@@ -1,24 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  ChevronRight, 
-  GitBranch, 
-  History, 
-  Loader2, 
-  MessageSquare,
-  Download,
-  FileText,
-  Trash2
-} from 'lucide-react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { StandupPDF } from '@/components/StandupPDF';
-import ReactMarkdown from 'react-markdown';
-import { toast } from 'sonner';
-import { ConfirmModal } from '@/components/ConfirmModal';
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { ChevronRight, History as HistoryIcon, Loader2, Trash2 } from "lucide-react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { StandupPDF } from "@/components/StandupPDF";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function HistoryPage() {
   const [session, setSession] = useState<any>(null);
@@ -28,6 +17,7 @@ export default function HistoryPage() {
   const [isClient, setIsClient] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -44,28 +34,25 @@ export default function HistoryPage() {
 
   const fetchHistory = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('history')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from("history")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
 
     if (data) setStandups(data);
     setLoading(false);
   };
 
   const deleteStandup = async (id: string) => {
-    const { error } = await supabase
-      .from('history')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("history").delete().eq("id", id);
 
     if (error) {
-      toast.error('Failed to delete report');
+      toast.error("Failed to delete report");
     } else {
-      setStandups(prev => prev.filter(s => s.id !== id));
+      setStandups((prev) => prev.filter((s) => s.id !== id));
       if (selectedStandup?.id === id) setSelectedStandup(null);
-      toast.success('Report deleted successfully');
+      toast.success("Report deleted successfully");
     }
   };
 
@@ -74,182 +61,158 @@ export default function HistoryPage() {
     setDeleteConfirmOpen(true);
   };
 
-  if (!session && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <p className="text-gray-500">Please sign in to view your history.</p>
-      </div>
-    );
-  }
+  const sentCount = standups.filter((s) => s.commits_count && s.commits_count > 0).length;
+  const draftCount = standups.length - sentCount;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      <header className="bg-white/80 border-b border-gray-200 px-8 py-6 sticky top-0 z-20 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <a href="/" className="p-2 hover:bg-gray-100 rounded-full transition-all text-gray-500 hover:text-blue-600 border border-transparent hover:border-gray-200">
-              <ArrowLeft size={20} />
-            </a>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tighter">Generation History</h1>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">All your AI-generated standup drafts in one place.</p>
-            </div>
+    <div className="history-page">
+      <div className="history-header">
+        <div>
+          <h1 className="history-title">Stand-up History</h1>
+          <p className="history-subtitle">All past summaries — click any row to expand</p>
+        </div>
+        <div className="history-summary-chips">
+          <div className="summary-chip">
+            <span>{sentCount}</span>
+            <span>sent</span>
           </div>
-          <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20">
-            <History size={20} />
+          <div className="summary-chip draft">
+            <span>{draftCount}</span>
+            <span>draft</span>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-5xl mx-auto p-8">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-400">
-            <Loader2 size={40} className="animate-spin mb-4" />
-            <p className="font-bold uppercase tracking-widest text-xs">Syncing History...</p>
-          </div>
-        ) : standups.length > 0 ? (
-          <div className="space-y-6">
-            {standups.map((item) => (
-              <div key={item.id} className="bg-white rounded-[32px] border-2 border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group overflow-hidden">
-                <div className="p-8 flex flex-col md:flex-row gap-8 md:items-center justify-between">
-                  <div className="flex items-start gap-6 flex-1">
-                    <div className="p-4 bg-gray-50 text-gray-400 group-hover:bg-blue-600 group-hover:text-white rounded-2xl transition-all shrink-0 shadow-sm">
-                      <GitBranch size={24} />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 tracking-tighter">
-                        {item.owner}/{item.repo}
-                        <ChevronRight size={16} className="text-gray-300" />
-                      </h3>
-                      <div className="flex items-center gap-6 text-xs text-gray-400 font-bold uppercase tracking-widest">
-                        <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full">
-                          <Calendar size={14} className="text-gray-400" />
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                        <span className="flex items-center gap-1.5 bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100">
-                          <MessageSquare size={14} />
-                          {item.commits_count || 0} Commit Info
-                        </span>
-                      </div>
+      {loading ? (
+        <div className="panel-label">
+          <Loader2 size={16} className="icon-spin" />
+          Syncing history...
+        </div>
+      ) : standups.length > 0 ? (
+        <div className="history-list">
+          {standups.map((item) => {
+            const isExpanded = expandedId === item.id;
+            return (
+              <div key={item.id} className={`history-item ${isExpanded ? "expanded" : ""}`}>
+                <button className="history-row" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+                  <div className="history-row-left">
+                    <div className="history-date-block">
+                      <span className="history-date">{new Date(item.created_at).toLocaleDateString()}</span>
+                      <span className="history-ago">{new Date(item.created_at).toLocaleTimeString()}</span>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => openDeleteConfirm(item.id)}
-                      className="p-3.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all active:scale-[0.95] border border-transparent hover:border-red-100"
-                      title="Delete Report"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                    <button 
-                      onClick={() => setSelectedStandup(item)}
-                      className="px-8 py-3.5 text-sm font-black bg-gray-950 text-white rounded-2xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20 transition-all active:scale-[0.98] uppercase tracking-widest"
-                    >
-                      View Report
-                    </button>
+                  <div className="history-row-meta">
+                    <span className="meta-commits">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="4" /><line x1="1.05" y1="12" x2="7" y2="12" /><line x1="17.01" y1="12" x2="22.96" y2="12" />
+                      </svg>
+                      {item.commits_count || 0} commits
+                    </span>
+                    <span className={`status-badge ${item.commits_count ? "sent" : "draft"}`}>
+                      {item.commits_count ? "Sent" : "Draft"}
+                    </span>
+                    <ChevronRight className="expand-icon" size={14} />
                   </div>
-                </div>
-                
-                <div className="px-8 pb-8 pt-0 mt-[-8px]">
-                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 text-sm font-medium text-gray-600 line-clamp-2 whitespace-pre-wrap leading-relaxed italic">
-                    {item.content}
+                </button>
+
+                {isExpanded && (
+                  <div className="history-detail">
+                    <pre className="history-summary-text">{item.content}</pre>
+                    <div className="history-detail-actions">
+                      <button className="btn-edit" onClick={() => setSelectedStandup(item)}>
+                        View Report
+                      </button>
+                      <button className="btn-edit" onClick={() => openDeleteConfirm(item.id)}>
+                        <Trash2 size={14} /> Delete
+                      </button>
+                      {isClient && (
+                        <PDFDownloadLink
+                          document={
+                            <StandupPDF
+                              owner={item.owner}
+                              repo={item.repo}
+                              date={item.created_at}
+                              commits={item.commits_count || 0}
+                              content={item.content}
+                            />
+                          }
+                          fileName={`standup-${item.repo}-${new Date(item.created_at).toISOString().split("T")[0]}.pdf`}
+                        >
+                          {({ loading: pdfLoading }) => (
+                            <button className="btn-edit" disabled={pdfLoading}>
+                              {pdfLoading ? "Preparing PDF..." : "Download PDF"}
+                            </button>
+                          )}
+                        </PDFDownloadLink>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-32 space-y-6">
-            <div className="w-24 h-24 bg-gray-100 rounded-[32px] flex items-center justify-center mx-auto text-gray-300">
-              <History size={48} />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-gray-900 tracking-tighter">No history found</p>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Generate your first standup to see it here.</p>
-            </div>
-            <a href="/" className="inline-block px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/30 transition-all active:scale-[0.98] uppercase tracking-widest">
-              Go to Dashboard
-            </a>
-          </div>
-        )}
-      </main>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <HistoryIcon size={32} />
+          <p>No stand-ups yet. Generate your first one on the Review tab.</p>
+        </div>
+      )}
 
-      {/* Report Modal */}
       {selectedStandup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-gray-950/80 backdrop-blur-md transition-opacity" 
-            onClick={() => setSelectedStandup(null)}
-          />
-          <div className="relative bg-white w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl border-2 border-white/20 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20">
-                  <MessageSquare size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-gray-950 tracking-tighter">{selectedStandup.owner}/{selectedStandup.repo}</h2>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Generated on {new Date(selectedStandup.created_at).toLocaleString()}</p>
-                </div>
+        <div className="report-modal">
+          <div className="report-backdrop" onClick={() => setSelectedStandup(null)} />
+          <div className="report-card">
+            <div className="report-header">
+              <div>
+                <h2 className="report-title">
+                  {selectedStandup.owner}/{selectedStandup.repo}
+                </h2>
+                <p className="report-subtitle">
+                  Generated on {new Date(selectedStandup.created_at).toLocaleString()}
+                </p>
               </div>
-              <button 
-                onClick={() => setSelectedStandup(null)}
-                className="p-2.5 hover:bg-gray-200 rounded-xl transition-all text-gray-400 hover:text-gray-950"
-              >
-                <ChevronRight size={24} className="rotate-90 md:rotate-0" />
+              <button className="report-close" onClick={() => setSelectedStandup(null)}>
+                <ChevronRight size={20} className="report-close-icon" />
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
-              <div className="prose prose-slate max-w-none !text-gray-950 prose-headings:!text-gray-950 prose-p:!text-gray-900 prose-li:!text-gray-900 prose-headings:font-black prose-headings:tracking-tighter prose-h3:mt-10 prose-h3:mb-4 prose-h3:border-b prose-h3:pb-2 prose-h3:border-gray-100">
-                <ReactMarkdown>
-                  {selectedStandup.content}
-                </ReactMarkdown>
+
+            <div className="report-body">
+              <div className="report-content">
+                <ReactMarkdown>{selectedStandup.content}</ReactMarkdown>
               </div>
             </div>
 
-            <div className="p-8 bg-gray-50/80 border-t border-gray-100 flex justify-end gap-3">
-              <button 
-                onClick={() => setSelectedStandup(null)}
-                className="px-8 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
-              >
+            <div className="report-footer">
+              <button onClick={() => setSelectedStandup(null)} className="btn-secondary">
                 Close
               </button>
               {isClient && selectedStandup && (
-                <PDFDownloadLink 
+                <PDFDownloadLink
                   document={
-                    <StandupPDF 
-                      owner={selectedStandup.owner} 
-                      repo={selectedStandup.repo} 
-                      date={selectedStandup.created_at} 
+                    <StandupPDF
+                      owner={selectedStandup.owner}
+                      repo={selectedStandup.repo}
+                      date={selectedStandup.created_at}
                       commits={selectedStandup.commits_count || 0}
                       content={selectedStandup.content}
                     />
-                  } 
-                  fileName={`standup-${selectedStandup.repo}-${new Date(selectedStandup.created_at).toISOString().split('T')[0]}.pdf`}
+                  }
+                  fileName={`standup-${selectedStandup.repo}-${new Date(selectedStandup.created_at).toISOString().split("T")[0]}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
-                    <button 
-                      className={`px-10 py-4 ${pdfLoading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center gap-2`}
-                      disabled={pdfLoading}
-                    >
-                      {pdfLoading ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <Download size={14} />
-                      )}
-                      {pdfLoading ? 'Preparing PDF...' : 'Download PDF'}
+                    <button className="btn-primary" disabled={pdfLoading}>
+                      {pdfLoading ? "Preparing PDF..." : "Download PDF"}
                     </button>
                   )}
                 </PDFDownloadLink>
               )}
-              <button 
+              <button
                 onClick={() => {
                   navigator.clipboard.writeText(selectedStandup.content);
-                  toast.success('Copied to clipboard');
+                  toast.success("Copied to clipboard");
                 }}
-                className="px-10 py-4 bg-gray-950 text-white rounded-2xl font-black shadow-lg shadow-gray-500/20 hover:bg-gray-800 transition-all active:scale-[0.98] uppercase tracking-widest text-xs"
+                className="btn-primary"
               >
                 Copy Content
               </button>
@@ -258,13 +221,14 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={() => itemToDelete && deleteStandup(itemToDelete)}
-        title="Delete Report"
-        message="Are you sure you want to delete this report? This action cannot be undone."
+        title="Delete standup report"
+        message="This will permanently remove the report from your history."
         confirmText="Delete"
+        cancelText="Cancel"
         variant="danger"
       />
     </div>
