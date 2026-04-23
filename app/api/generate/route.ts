@@ -14,19 +14,79 @@ const supabaseAdmin = createClient(
 /**
  * Aggressively cleans the report text to remove emojis and special characters.
  */
+const SECTION_TITLES = [
+  "Accomplishments",
+  "Challenges and Blockers",
+  "Technical Debt and Cleanups",
+];
+
 function cleanReportText(text: string): string {
-  if (!text) return '';
-  
-  // 1. Remove Emojis and Symbols
-  let cleaned = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
-  
-  // 2. Strip specifically requested symbols
-  cleaned = cleaned.replace(/[🟢🟡🔵✅🚀🛠️📊📈📉📁📎📌📍⚠️🛑🔥💡✨⭐🌟]/g, '');
-  
-  // 3. Optional: Remove markdown headers if user wants pure plain text
-  // cleaned = cleaned.replace(/^#+\s/gm, ''); 
-  
+  if (!text) return "";
+
+  let cleaned = text;
+  cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, "");
+  cleaned = cleaned.replace(/[🟢🟡🔵✅🚀🛠️📊📈📉📁📎📌📍⚠️🛑🔥💡✨⭐🌟]/g, "");
+
+  cleaned = cleaned.replace(/\r/g, "");
+  cleaned = cleaned.replace(/\*\*|__|`/g, "");
+  cleaned = cleaned.replace(/^#+\s*/gm, "");
+  cleaned = cleaned.replace(/^[-*•]\s+/gm, "- ");
+  cleaned = cleaned.replace(/[\\|<>]/g, "");
+
+  // Remove any remaining non-text symbols while preserving punctuation, hyphens, and newlines
+  cleaned = cleaned.replace(/[^a-zA-Z0-9\s.,:;'()\-\n]/g, "");
+  cleaned = cleaned.replace(/\s{2,}/g, " ");
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
   return cleaned.trim();
+}
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function formatStandupText(text: string): string {
+  const cleaned = cleanReportText(text);
+
+  const normalized = cleaned.replace(
+    /(Accomplishments|Challenges and Blockers|Technical Debt and Cleanups)/gi,
+    "\n$1\n"
+  );
+
+  const lines = normalized.split("\n").map((l) => l.trim());
+  const sections: Record<string, string[]> = {
+    "Accomplishments": [],
+    "Challenges and Blockers": [],
+    "Technical Debt and Cleanups": [],
+  };
+
+  let current: string = "Accomplishments";
+  for (const line of lines) {
+    if (!line) continue;
+    const match = SECTION_TITLES.find((title) => title.toLowerCase() === line.toLowerCase());
+    if (match) {
+      current = match;
+      continue;
+    }
+    sections[current].push(line.replace(/^[-\s]+/, "").trim());
+  }
+
+  const formatted = SECTION_TITLES.map((title) => {
+    const rawItems = sections[title].length
+      ? sections[title]
+      : [];
+
+    const items = rawItems.length
+      ? rawItems.flatMap((item) => item.includes(".") ? splitSentences(item) : [item])
+      : ["No updates reported."];
+
+    return [title, ...items.map((item) => `- ${item}`)].join("\n");
+  }).join("\n\n");
+
+  return formatted.trim();
 }
 
 export async function POST(request: Request) {
@@ -136,8 +196,8 @@ export async function POST(request: Request) {
         }
       }
 
-      // Aggressive cleaning of the final text
-      summaryText = cleanReportText(summaryText);
+      // Normalize and clean the final text
+      summaryText = formatStandupText(summaryText);
     }
 
     // Save to Supabase

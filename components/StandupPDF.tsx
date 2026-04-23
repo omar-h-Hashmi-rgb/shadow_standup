@@ -1,5 +1,5 @@
-import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
+import React from "react";
+import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
 
 // Register a clean font (optional, using default Helvetica for simplicity if custom font not available)
 // Standard fonts: Helvetica, Times-Roman, Courier, Symbol, ZapfDingbats
@@ -100,9 +100,24 @@ interface StandupPDFProps {
   content: string;
 }
 
+const SECTION_TITLES = [
+  "Accomplishments",
+  "Challenges and Blockers",
+  "Technical Debt and Cleanups",
+];
+
+const parseSections = (content: string) => {
+  const blocks = content.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
+  return blocks.map((block) => {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    const title = lines[0] || "Section";
+    const items = lines.slice(1).map((line) => line.replace(/^[-\s]+/, "")).filter(Boolean);
+    return { title, items: items.length ? items : [block.replace(title, "").trim()].filter(Boolean) };
+  });
+};
+
 export const StandupPDF = ({ owner, repo, date, commits, content }: StandupPDFProps) => {
-  // Simple parsing of markdown-like sections
-  const sections = content.split('\n\n');
+  const sections = parseSections(content);
 
   return (
     <Document>
@@ -128,35 +143,17 @@ export const StandupPDF = ({ owner, repo, date, commits, content }: StandupPDFPr
         </View>
 
         <View style={styles.content}>
-          {content.split('\n').map((line, index) => {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) return null;
-
-            // Check if it's a section title
-            const isSectionTitle = [
-              'Accomplishments',
-              'Challenges and Blockers',
-              'Technical Debt and Cleanups',
-              'Challenges/Blockers',
-              'Technical Debt/Cleanups'
-            ].some(title => trimmedLine.toLowerCase().includes(title.toLowerCase()));
-
-            if (isSectionTitle || trimmedLine.startsWith('###') || trimmedLine.startsWith('**')) {
-              const cleanTitle = trimmedLine.replace(/[#*:]/g, '').trim();
-              return <Text key={index} style={styles.sectionTitle}>{cleanTitle}</Text>;
-            }
-
-            if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-              return (
-                <View key={index} style={styles.listItem}>
+          {sections.map((section, index) => (
+            <View key={`${section.title}-${index}`}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.items.map((item, itemIndex) => (
+                <View key={`${section.title}-${itemIndex}`} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
-                  <Text>{trimmedLine.substring(2).trim()}</Text>
+                  <Text>{item}</Text>
                 </View>
-              );
-            }
-
-            return <Text key={index} style={{ marginBottom: 10 }}>{trimmedLine}</Text>;
-          })}
+              ))}
+            </View>
+          ))}
         </View>
 
         <View style={styles.footer}>

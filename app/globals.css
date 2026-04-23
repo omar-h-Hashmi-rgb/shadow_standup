@@ -369,6 +369,17 @@ button {
   padding: 4px 0;
 }
 
+.control-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.control-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .commits-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -689,6 +700,17 @@ button {
   display: flex;
   align-items: baseline;
   gap: 10px;
+}
+
+.history-repo {
+  margin-top: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  background: var(--accent-dim);
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .history-date {
@@ -1171,6 +1193,27 @@ button {
   font-size: 13px;
   color: #0f172a;
   line-height: 1.7;
+}
+
+.report-section {
+  margin-bottom: 1.25rem;
+}
+
+.report-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.report-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .report-footer {

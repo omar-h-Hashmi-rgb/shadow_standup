@@ -64,6 +64,16 @@ export default function HistoryPage() {
   const sentCount = standups.filter((s) => s.commits_count && s.commits_count > 0).length;
   const draftCount = standups.length - sentCount;
 
+  const parseSections = (content: string) => {
+    const blocks = content.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
+    return blocks.map((block) => {
+      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+      const title = lines[0] || "Section";
+      const items = lines.slice(1).map((line) => line.replace(/^[-\s]+/, "")).filter(Boolean);
+      return { title, items: items.length ? items : [block.replace(title, "").trim()].filter(Boolean) };
+    });
+  };
+
   return (
     <div className="history-page">
       <div className="history-header">
@@ -100,6 +110,7 @@ export default function HistoryPage() {
                       <span className="history-date">{new Date(item.created_at).toLocaleDateString()}</span>
                       <span className="history-ago">{new Date(item.created_at).toLocaleTimeString()}</span>
                     </div>
+                    <div className="history-repo">{item.owner}/{item.repo}</div>
                   </div>
                   <div className="history-row-meta">
                     <span className="meta-commits">
@@ -179,7 +190,16 @@ export default function HistoryPage() {
 
             <div className="report-body">
               <div className="report-content">
-                <ReactMarkdown>{selectedStandup.content}</ReactMarkdown>
+                {parseSections(selectedStandup.content).map((section) => (
+                  <div key={section.title} className="report-section">
+                    <h3 className="report-section-title">{section.title}</h3>
+                    <ul className="report-list">
+                      {section.items.map((item, idx) => (
+                        <li key={`${section.title}-${idx}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
             </div>
 

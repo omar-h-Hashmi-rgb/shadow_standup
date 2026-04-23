@@ -91,6 +91,11 @@ export default function StandupGenerator({
     setSelectedShas(shas);
   };
 
+  const selectAllCommits = () => {
+    const shas = commits.map((c) => c.sha);
+    setSelectedShas(shas);
+  };
+
   const generateStandup = async () => {
     if (!selectedRepo || !token) return;
     setLoading(true);
@@ -228,9 +233,14 @@ export default function StandupGenerator({
               </select>
             </div>
 
-            <button onClick={selectLast24Hours} className="control-action">
-              Select last 24 hours
-            </button>
+            <div className="control-actions">
+              <button onClick={selectLast24Hours} className="control-action" disabled={!commits.length}>
+                Past 24 hours
+              </button>
+              <button onClick={selectAllCommits} className="control-action" disabled={!commits.length}>
+                All commits
+              </button>
+            </div>
           </div>
 
           <div className="commits-list">
@@ -244,6 +254,7 @@ export default function StandupGenerator({
                     type="checkbox"
                     checked={selectedShas.includes(c.sha)}
                     onChange={() => toggleSha(c.sha)}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <div className="commit-body">
                     <div className="commit-top">
