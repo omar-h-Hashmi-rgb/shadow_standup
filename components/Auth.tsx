@@ -25,7 +25,6 @@ export default function Auth() {
         Sign in with GitHub
       </button>
 
-      <p className="auth-footnote">Secure authentication via Supabase</p>
     </div>
   );
 }

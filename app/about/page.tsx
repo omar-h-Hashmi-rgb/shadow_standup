@@ -295,7 +295,7 @@ function ProductRoadmap() {
         {ROADMAP.map((item, i) => (
           <div
             key={i}
-            ref={(el) => (itemRefs.current[i] = el)}
+            ref={(el) => { itemRefs.current[i] = el; }}
             className={`roadmap-item${item.side === "right" ? " right" : ""}${activeIdx === i ? " active" : ""}${i < activeIdx ? " passed" : ""}`}
           >
             {item.side === "left" ? (
@@ -644,7 +644,10 @@ function NeuralNetwork() {
         <span className="neural-tagline">Everything connected.</span>
       </div>
       <div className="neural-controls">
-        <button className="neural-btn" onClick={() => (stateRef.current.zoom = 1)}>Reset</button>
+        <button className="neural-btn" onClick={() => {
+          stateRef.current.zoom = 1;
+          stateRef.current.offset = { x: 0, y: 0 };
+        }}>Reset</button>
         <button className="neural-btn" onClick={() => (stateRef.current.zoom = Math.min(1.6, stateRef.current.zoom + 0.1))}>Zoom in</button>
         <button className="neural-btn" onClick={() => (stateRef.current.zoom = Math.max(0.6, stateRef.current.zoom - 0.1))}>Zoom out</button>
       </div>
