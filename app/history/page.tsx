@@ -9,16 +9,22 @@ import {
   GitBranch, 
   History, 
   Loader2, 
-  MessageSquare 
+  MessageSquare,
+  Download,
+  FileText
 } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { StandupPDF } from '@/components/StandupPDF';
 
 export default function HistoryPage() {
   const [session, setSession] = useState<any>(null);
   const [standups, setStandups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStandup, setSelectedStandup] = useState<any>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -175,6 +181,34 @@ export default function HistoryPage() {
               >
                 Close
               </button>
+              {isClient && selectedStandup && (
+                <PDFDownloadLink 
+                  document={
+                    <StandupPDF 
+                      owner={selectedStandup.owner} 
+                      repo={selectedStandup.repo} 
+                      date={selectedStandup.created_at} 
+                      commits={selectedStandup.commits_count || 0}
+                      content={selectedStandup.content}
+                    />
+                  } 
+                  fileName={`standup-${selectedStandup.repo}-${new Date(selectedStandup.created_at).toISOString().split('T')[0]}.pdf`}
+                >
+                  {({ loading: pdfLoading }) => (
+                    <button 
+                      className={`px-10 py-4 ${pdfLoading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-2xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center gap-2`}
+                      disabled={pdfLoading}
+                    >
+                      {pdfLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Download size={14} />
+                      )}
+                      {pdfLoading ? 'Preparing PDF...' : 'Download PDF'}
+                    </button>
+                  )}
+                </PDFDownloadLink>
+              )}
               <button 
                 onClick={() => {
                   navigator.clipboard.writeText(selectedStandup.content);

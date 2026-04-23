@@ -77,9 +77,14 @@ export async function POST(request: Request) {
         You are an Expert Technical Lead. Read the following code diffs from a daily coding session and generate a professional, concise daily stand-up report.
         
         Format the output in clear Markdown with exactly these three sections:
-        🟢 Accomplishments (Focus on high-level business value and key technical changes)
-        🟡 Challenges/Blockers (Identify potential risks or difficult logic encountered)
-        🔵 Technical Debt/Cleanups (Note any areas requiring refactoring or documentation)
+        Accomplishments (Focus on high-level business value and key technical changes)
+        Challenges/Blockers (Identify potential risks or difficult logic encountered)
+        Technical Debt/Cleanups (Note any areas requiring refactoring or documentation)
+
+        Rules:
+        - Do NOT use emojis or special icons like circles or symbols.
+        - Use plain headings for each section.
+        - Use bullet points for items.
 
         CODE DIFF DATA:
         ${cleanedDiffs}
