@@ -131,7 +131,7 @@ export async function POST(request: Request) {
         { success: false, error: 'GitHub Token missing. Please check .env.local or sign in again.' },
         { status: 401 }
       );
-    }
+    } 
 
     let cleanedDiffs = '';
     let commitsUsed = 0;
