@@ -1,14 +1,18 @@
 import axios from "axios";
 
-const JIRA_BASE = process.env.JIRA_DOMAIN;
-const JIRA_EMAIL = process.env.JIRA_EMAIL;
-const JIRA_TOKEN = process.env.JIRA_TOKEN;
-const JIRA_PROJECT = process.env.JIRA_PROJECT_KEY;
+export interface JiraCredentials {
+  domain?: string;
+  email?: string;
+  token?: string;
+  projectKey?: string;
+}
 
-function getAuth() {
+function getConfig(creds?: JiraCredentials) {
   return {
-    username: JIRA_EMAIL!,
-    password: JIRA_TOKEN!,
+    base: creds?.domain || process.env.JIRA_DOMAIN || "",
+    email: creds?.email || process.env.JIRA_EMAIL || "",
+    token: creds?.token || process.env.JIRA_TOKEN || "",
+    project: creds?.projectKey || process.env.JIRA_PROJECT_KEY || "",
   };
 }
 
@@ -16,17 +20,20 @@ export async function createJiraIssue(params: {
   title: string;
   description: string;
   issueType?: string;
+  credentials?: JiraCredentials;
 }): Promise<{ success: boolean; key?: string; url?: string; error?: string }> {
-  if (!JIRA_BASE || !JIRA_EMAIL || !JIRA_TOKEN || !JIRA_PROJECT) {
+  const config = getConfig(params.credentials);
+
+  if (!config.base || !config.email || !config.token || !config.project) {
     return { success: false, error: "Jira not configured." };
   }
 
   try {
     const response = await axios.post(
-      `${JIRA_BASE}/rest/api/3/issue`,
+      `${config.base}/rest/api/3/issue`,
       {
         fields: {
-          project: { key: JIRA_PROJECT },
+          project: { key: config.project },
           summary: params.title,
           description: {
             type: "doc",
@@ -42,7 +49,7 @@ export async function createJiraIssue(params: {
         },
       },
       {
-        auth: getAuth(),
+        auth: { username: config.email, password: config.token },
         headers: { "Content-Type": "application/json" },
         timeout: 15000,
       }
@@ -52,7 +59,7 @@ export async function createJiraIssue(params: {
     return {
       success: true,
       key,
-      url: `${JIRA_BASE}/browse/${key}`,
+      url: `${config.base}/browse/${key}`,
     };
   } catch (error: any) {
     console.error("Jira API error:", error.response?.data || error.message);
@@ -62,13 +69,15 @@ export async function createJiraIssue(params: {
 
 export async function addJiraComment(
   issueKey: string,
-  body: string
+  body: string,
+  credentials?: JiraCredentials
 ): Promise<boolean> {
-  if (!JIRA_BASE || !JIRA_EMAIL || !JIRA_TOKEN) return false;
+  const config = getConfig(credentials);
+  if (!config.base || !config.email || !config.token) return false;
 
   try {
     await axios.post(
-      `${JIRA_BASE}/rest/api/3/issue/${issueKey}/comment`,
+      `${config.base}/rest/api/3/issue/${issueKey}/comment`,
       {
         body: {
           type: "doc",
@@ -82,7 +91,7 @@ export async function addJiraComment(
         },
       },
       {
-        auth: getAuth(),
+        auth: { username: config.email, password: config.token },
         headers: { "Content-Type": "application/json" },
         timeout: 10000,
       }

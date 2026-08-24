@@ -1,27 +1,37 @@
 import axios from "axios";
 
 const TRELLO_BASE = "https://api.trello.com/1";
-const TRELLO_KEY = process.env.TRELLO_API_KEY;
-const TRELLO_TOKEN = process.env.TRELLO_TOKEN;
-const TRELLO_LIST_ID = process.env.TRELLO_LIST_ID;
 
-function getAuthParams() {
-  return { key: TRELLO_KEY, token: TRELLO_TOKEN };
+export interface TrelloCredentials {
+  apiKey?: string;
+  token?: string;
+  listId?: string;
+}
+
+function getConfig(creds?: TrelloCredentials) {
+  return {
+    key: creds?.apiKey || process.env.TRELLO_API_KEY || "",
+    token: creds?.token || process.env.TRELLO_TOKEN || "",
+    listId: creds?.listId || process.env.TRELLO_LIST_ID || "",
+  };
 }
 
 export async function createTrelloCard(params: {
   name: string;
   desc: string;
-  labels?: string[];
+  credentials?: TrelloCredentials;
 }): Promise<{ success: boolean; id?: string; url?: string; error?: string }> {
-  if (!TRELLO_KEY || !TRELLO_TOKEN || !TRELLO_LIST_ID) {
+  const config = getConfig(params.credentials);
+
+  if (!config.key || !config.token || !config.listId) {
     return { success: false, error: "Trello not configured." };
   }
 
   try {
     const response = await axios.post(`${TRELLO_BASE}/cards`, {
-      ...getAuthParams(),
-      idList: TRELLO_LIST_ID,
+      key: config.key,
+      token: config.token,
+      idList: config.listId,
       name: params.name,
       desc: params.desc,
       pos: "top",
@@ -41,13 +51,16 @@ export async function createTrelloCard(params: {
 
 export async function addTrelloComment(
   cardId: string,
-  text: string
+  text: string,
+  credentials?: TrelloCredentials
 ): Promise<boolean> {
-  if (!TRELLO_KEY || !TRELLO_TOKEN) return false;
+  const config = getConfig(credentials);
+  if (!config.key || !config.token) return false;
 
   try {
     await axios.post(`${TRELLO_BASE}/cards/${cardId}/actions/comments`, {
-      ...getAuthParams(),
+      key: config.key,
+      token: config.token,
       text,
     });
     return true;

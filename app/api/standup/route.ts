@@ -149,13 +149,27 @@ export async function POST(request: Request) {
       analysis = buildFallbackAnalysis({ author, repo, branch: branch || "main", commitMessages, rawResponse, mlMetrics });
     }
 
+    let userSettings: Record<string, string> = {};
+    if (userId) {
+      try {
+        const { data: settingsData } = await supabaseAdmin
+          .from("user_settings")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+        if (settingsData) userSettings = settingsData;
+      } catch (e) {
+        console.log("[standup] No user settings found, using env defaults");
+      }
+    }
+
     const webhookResults: Record<string, boolean> = {};
     const activePlatforms: string[] = platforms || [];
 
     console.log("[standup] Delivering to:", activePlatforms);
 
     if (activePlatforms.includes("discord") || discordWebhook) {
-      const url = discordWebhook || process.env.DISCORD_WEBHOOK_URL;
+      const url = discordWebhook || userSettings.discord_webhook_url || process.env.DISCORD_WEBHOOK_URL;
       if (url) {
         webhookResults.discord = await sendStandupToDiscord(url, analysis);
         console.log("[standup] Discord result:", webhookResults.discord);
@@ -163,7 +177,7 @@ export async function POST(request: Request) {
     }
 
     if (activePlatforms.includes("slack") || slackWebhook) {
-      const url = slackWebhook || process.env.SLACK_WEBHOOK_URL;
+      const url = slackWebhook || userSettings.slack_webhook_url || process.env.SLACK_WEBHOOK_URL;
       if (url) {
         webhookResults.slack = await sendStandupToSlack(url, analysis);
         console.log("[standup] Slack result:", webhookResults.slack);
@@ -174,6 +188,11 @@ export async function POST(request: Request) {
       const card = await createTrelloCard({
         name: `Standup: ${analysis.developer} — ${analysis.repository}`,
         desc: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.join("\n")}\n\nToday:\n${analysis.today_focus.join("\n")}`,
+        credentials: {
+          apiKey: userSettings.trello_api_key,
+          token: userSettings.trello_token,
+          listId: userSettings.trello_list_id,
+        },
       });
       webhookResults.trello = card.success;
       console.log("[standup] Trello result:", card.success, card.url || card.error);
@@ -183,6 +202,12 @@ export async function POST(request: Request) {
       const issue = await createJiraIssue({
         title: `Standup: ${analysis.developer} — ${analysis.repository}`,
         description: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.map((i) => "- " + i).join("\n")}\n\nToday:\n${analysis.today_focus.map((i) => "- " + i).join("\n")}`,
+        credentials: {
+          domain: userSettings.jira_domain,
+          email: userSettings.jira_email,
+          token: userSettings.jira_api_token,
+          projectKey: userSettings.jira_project_key,
+        },
       });
       webhookResults.jira = issue.success;
       console.log("[standup] Jira result:", issue.success, issue.url || issue.error);

@@ -112,7 +112,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   };
 
-  const generateStandup = async () => {
+  const generateStandup = async (deliver: boolean) => {
     if (!selectedRepo || !token || selectedShas.length === 0) return;
     setLoading(true);
     setError("");
@@ -135,9 +135,9 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
           commitShas: selectedShas,
           userId,
           model: selectedModel,
-          platforms,
-          discordWebhook: discordWebhook || undefined,
-          slackWebhook: slackWebhook || undefined,
+          platforms: deliver ? platforms : [],
+          discordWebhook: deliver ? (discordWebhook || undefined) : undefined,
+          slackWebhook: deliver ? (slackWebhook || undefined) : undefined,
         }),
       });
 
@@ -329,10 +329,14 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
             </div>
           </div>
 
-          <div className="summary-actions" style={{ marginTop: "0.75rem" }}>
-            <button className="btn-primary" onClick={generateStandup} disabled={loading || selectedShas.length === 0}>
+          <div className="summary-actions" style={{ marginTop: "0.75rem", gap: "8px" }}>
+            <button className="btn-primary" onClick={() => generateStandup(false)} disabled={loading || selectedShas.length === 0}>
               {loading ? <span className="spinner" /> : null}
-              {loading ? "Generating..." : "Generate & Deliver (" + selectedShas.length + ")"}
+              {loading ? "Generating..." : "Generate Only"}
+            </button>
+            <button className="btn-primary" onClick={() => generateStandup(true)} disabled={loading || selectedShas.length === 0} style={{ background: "var(--green)", borderColor: "var(--green)" }}>
+              {loading ? <span className="spinner" /> : null}
+              {loading ? "Delivering..." : "Generate & Deliver (" + selectedShas.length + ")"}
             </button>
           </div>
 
