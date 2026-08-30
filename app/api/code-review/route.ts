@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { resolveGitHubToken } from '@/lib/auth';
-import { fetchCommitDiff, cleanDiff } from '@/lib/github';
+import { fetchCommitDiff } from '@/lib/github';
+import { buildStructuredReviewDiff } from '@/lib/diff-processing';
 import { model as geminiModel } from '@/lib/gemini';
 import { groq } from '@/lib/groq';
 import { CODE_REVIEW_SYSTEM_PROMPT, parseCodeReviewResponse, type CodeReviewResult } from '@/lib/code-review';
@@ -31,13 +32,13 @@ export async function POST(request: Request) {
 
     const diffPromises = commitShas.map((sha: string) => fetchCommitDiff(owner, repo, sha, token));
     const diffs = await Promise.all(diffPromises);
-    const cleanedDiffs = cleanDiff(diffs.join('\n\n---\n\n'));
+    const { diffText, skippedFiles, reviewedFiles } = buildStructuredReviewDiff(diffs);
 
-    if (!cleanedDiffs) {
+    if (!diffText) {
       return NextResponse.json({ success: false, error: 'No diff data found for the selected commits.' }, { status: 400 });
     }
 
-    const userPrompt = `Review this code diff from ${owner}/${repo}.\n\nDIFF:\n${cleanedDiffs}`;
+    const userPrompt = `Review this code diff from ${owner}/${repo}. ${reviewedFiles} file(s) are included below${skippedFiles.length ? `, ${skippedFiles.length} file(s) were omitted for size and are listed at the end` : ''}.\n\nDIFF:\n${diffText}`;
 
     let rawResponse = '';
 
