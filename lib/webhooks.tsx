@@ -1,11 +1,42 @@
 import axios from "axios";
 import type { CodeReviewResult } from "./code-review";
 import type { StandupAnalysis } from "./prompts";
+<<<<<<< HEAD
+import { formatForSlack, formatForDiscord, formatForTeams, formatReviewForTeams } from "./platform-adapter";
+import { validateWebhookUrl, type WebhookKind } from "./url-safety";
+import { postToTeams } from "./teams";
+
+/**
+ * POSTs JSON to a user/env-supplied webhook after validating it against the
+ * provider's host allow-list (SSRF defence). Redirects are refused so an
+ * allowed host cannot bounce the request to an internal address.
+ */
+async function postWebhook(kind: WebhookKind, webhookUrl: string, body: object, timeout: number, label: string): Promise<boolean> {
+  const check = validateWebhookUrl(kind, webhookUrl);
+  if (!check.ok) {
+    console.error(`${label} webhook rejected: ${check.reason}`);
+    return false;
+  }
+  try {
+    await axios.post(check.url, body, { timeout, maxRedirects: 0, maxContentLength: 64 * 1024 });
+    return true;
+  } catch (error) {
+    const status = axios.isAxiosError(error) ? error.response?.status || error.code : undefined;
+    console.error(`${label} webhook failed:`, status || "unknown error");
+    return false;
+  }
+}
+
+// ===== Code Review Webhooks =====
+
+function formatReviewForWebhook(review: CodeReviewResult, repo: string, owner: string, scopeLabel?: string): string {
+=======
 import { formatForSlack, formatForDiscord } from "./platform-adapter";
 
 // ===== Code Review Webhooks =====
 
 function formatReviewForWebhook(review: CodeReviewResult, repo: string, owner: string): string {
+>>>>>>> origin/main
   const riskEmoji: Record<string, string> = {
     low: "🟢",
     medium: "🟡",
@@ -15,6 +46,10 @@ function formatReviewForWebhook(review: CodeReviewResult, repo: string, owner: s
 
   const lines: string[] = [
     `${riskEmoji[review.riskLevel] || "⚪"} **Code Review — ${owner}/${repo}**`,
+<<<<<<< HEAD
+    ...(scopeLabel ? [`_${scopeLabel}_`] : []),
+=======
+>>>>>>> origin/main
     `Risk: **${review.riskLevel.toUpperCase()}** | Approved: **${review.approved ? "Yes" : "No"}**`,
     "",
     review.summary,
@@ -46,6 +81,24 @@ function formatReviewForWebhook(review: CodeReviewResult, repo: string, owner: s
   return lines.join("\n");
 }
 
+<<<<<<< HEAD
+export async function sendToDiscord(webhookUrl: string, review: CodeReviewResult, repo: string, owner: string, scopeLabel?: string): Promise<boolean> {
+  const content = formatReviewForWebhook(review, repo, owner, scopeLabel).slice(0, 1900); // Discord limit: 2000
+  return postWebhook("discord", webhookUrl, { content }, 10000, "Discord");
+}
+
+export async function sendToSlack(webhookUrl: string, review: CodeReviewResult, repo: string, owner: string, scopeLabel?: string): Promise<boolean> {
+  const text = formatReviewForWebhook(review, repo, owner, scopeLabel);
+  return postWebhook("slack", webhookUrl, { text }, 10000, "Slack");
+}
+
+/** Optional: sends nothing (returns false) unless TEAMS_WEBHOOK_URL is configured. */
+export async function sendToTeams(review: CodeReviewResult, repo: string, owner: string, scopeLabel?: string): Promise<boolean> {
+  try {
+    return (await postToTeams(formatReviewForTeams(review, repo, owner, scopeLabel))).ok;
+  } catch (error) {
+    console.error("Teams review notification failed:", error instanceof Error ? error.message : "unknown error");
+=======
 export async function sendToDiscord(webhookUrl: string, review: CodeReviewResult, repo: string, owner: string): Promise<boolean> {
   try {
     const content = formatReviewForWebhook(review, repo, owner);
@@ -64,6 +117,7 @@ export async function sendToSlack(webhookUrl: string, review: CodeReviewResult, 
     return true;
   } catch (error: any) {
     console.error("Slack webhook failed:", error.message);
+>>>>>>> origin/main
     return false;
   }
 }
@@ -74,6 +128,9 @@ export async function sendStandupToDiscord(
   webhookUrl: string,
   analysis: StandupAnalysis
 ): Promise<boolean> {
+<<<<<<< HEAD
+  return postWebhook("discord", webhookUrl, formatForDiscord(analysis), 15000, "Discord standup");
+=======
   try {
     const payload = formatForDiscord(analysis);
     await axios.post(webhookUrl, payload, { timeout: 15000 });
@@ -82,18 +139,31 @@ export async function sendStandupToDiscord(
     console.error("Discord standup webhook failed:", error.message);
     return false;
   }
+>>>>>>> origin/main
 }
 
 export async function sendStandupToSlack(
   webhookUrl: string,
   analysis: StandupAnalysis
 ): Promise<boolean> {
+<<<<<<< HEAD
+  return postWebhook("slack", webhookUrl, { text: formatForSlack(analysis) }, 15000, "Slack standup");
+}
+
+/** Optional: sends nothing (returns false) unless TEAMS_WEBHOOK_URL is configured. */
+export async function sendStandupToTeams(analysis: StandupAnalysis): Promise<boolean> {
+  try {
+    return (await postToTeams(formatForTeams(analysis))).ok;
+  } catch (error) {
+    console.error("Teams standup notification failed:", error instanceof Error ? error.message : "unknown error");
+=======
   try {
     const text = formatForSlack(analysis);
     await axios.post(webhookUrl, { text }, { timeout: 15000 });
     return true;
   } catch (error: any) {
     console.error("Slack standup webhook failed:", error.message);
+>>>>>>> origin/main
     return false;
   }
 }

@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+<<<<<<< HEAD
+import { apiFetch } from "@/lib/api-client";
+import { Save, ExternalLink, ChevronDown, ChevronUp, Send } from "lucide-react";
+=======
 import { Save, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+>>>>>>> origin/main
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -111,6 +116,12 @@ function PlatformSection({
   return (
     <div className="settings-section">
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+<<<<<<< HEAD
+        <span className="platform-mark">{icon}</span>
+        <div className="settings-section-title" style={{ margin: 0 }}>{title}</div>
+                <span className={`status-badge ${isComplete ? "ok" : "warn"}`}>
+          {isComplete ? "Configured" : filledCount === 0 ? "Not configured" : `${filledCount}/${fields.length} fields`}
+=======
         <span style={{ fontSize: "20px" }}>{icon}</span>
         <div className="settings-section-title" style={{ margin: 0 }}>{title}</div>
         {isComplete && <CheckCircle2 size={16} style={{ color: "var(--green)" }} />}
@@ -124,6 +135,7 @@ function PlatformSection({
           border: `1px solid ${isComplete ? "rgba(52,211,153,0.3)" : "rgba(251,191,36,0.3)"}`,
         }}>
           {filledCount}/{fields.length}
+>>>>>>> origin/main
         </span>
       </div>
       {fields.map((f) => (
@@ -143,6 +155,76 @@ function PlatformSection({
   );
 }
 
+<<<<<<< HEAD
+interface TeamsStatus {
+  configured: boolean;
+  reason?: "missing" | "invalid";
+}
+
+function TeamsSection() {
+  const [status, setStatus] = useState<TeamsStatus | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    apiFetch("/api/integrations/status")
+      .then((r) => r.json())
+      .then((d) => d.success && setStatus(d.teams))
+      .catch(() => setStatus(null));
+  }, []);
+
+  const sendTest = async () => {
+    setTesting(true);
+    try {
+      const res = await apiFetch("/api/integrations/teams/test", { method: "POST" });
+      const data = await res.json();
+      if (data.success) toast.success("Test message sent to Microsoft Teams");
+      else toast.error(data.error || "Teams test failed");
+    } catch {
+      toast.error("Teams test failed");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const configured = status?.configured === true;
+
+  return (
+    <div className="settings-section" id="teams">
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <span className="platform-mark">M</span>
+        <div className="settings-section-title" style={{ margin: 0 }}>Microsoft Teams</div>
+        <span className={`status-badge ${configured ? "ok" : "warn"}`}>
+          {status === null ? "Checking…" : configured ? "Configured" : "Not configured"}
+        </span>
+      </div>
+      <p className="settings-note" style={{ marginTop: 10 }}>
+        Optional. Teams is configured on the server with the <code className="inline-code">TEAMS_WEBHOOK_URL</code> environment
+        variable, so the webhook is never stored in the browser or shown here.
+        {status?.reason === "invalid" && " The value currently set is not a recognised Teams Workflows webhook URL."}
+      </p>
+      <div style={{ marginTop: 10 }}>
+        <button className="btn-secondary" onClick={sendTest} disabled={!configured || testing}>
+          <Send size={14} />
+          {testing ? "Sending…" : "Send test message"}
+        </button>
+      </div>
+      <SetupGuide
+        title="How to set up the Teams webhook"
+        steps={[
+          "In Teams, open the target channel, click the ••• menu, and choose Workflows.",
+          'Pick the template "Post to a channel when a webhook request is received" and follow the prompts (name it, choose the team and channel).',
+          "Copy the webhook URL that Teams shows when the workflow is created.",
+          "Add TEAMS_WEBHOOK_URL=<that URL> to .env.local (or your host's environment variables) and restart the server.",
+          'Return here, confirm the status says "Configured", and click "Send test message".',
+        ]}
+        link="https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook"
+      />
+    </div>
+  );
+}
+
+=======
+>>>>>>> origin/main
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULTS);
   const [githubToken, setGithubToken] = useState("");
@@ -166,7 +248,11 @@ export default function SettingsPage() {
 
   const loadSettings = async (uid: string) => {
     try {
+<<<<<<< HEAD
+      const res = await apiFetch("/api/settings");
+=======
       const res = await fetch(`/api/settings?userId=${uid}`);
+>>>>>>> origin/main
       const data = await res.json();
       if (data.success && data.settings) {
         setSettings(data.settings);
@@ -187,14 +273,25 @@ export default function SettingsPage() {
     if (userId) {
       setSaving(true);
       try {
+<<<<<<< HEAD
+        const res = await apiFetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ settings }),
+=======
         const res = await fetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, settings }),
+>>>>>>> origin/main
         });
         const data = await res.json();
         if (data.success) {
           toast.success("Settings saved to your profile");
+<<<<<<< HEAD
+          if (userId) loadSettings(userId);
+=======
+>>>>>>> origin/main
         } else {
           toast.error(data.error || "Failed to save");
         }
@@ -214,7 +311,11 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
+<<<<<<< HEAD
+      <div className="settings-card" id="integrations">
+=======
       <div className="settings-card">
+>>>>>>> origin/main
         <div style={{ marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 4px" }}>Integration Settings</h2>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0 }}>
@@ -222,7 +323,11 @@ export default function SettingsPage() {
           </p>
         </div>
 
+<<<<<<< HEAD
+        <div className="settings-section" id="github">
+=======
         <div className="settings-section">
+>>>>>>> origin/main
           <div className="settings-section-title">GitHub</div>
           <div className="settings-field">
             <label className="settings-label">Personal Access Token</label>
@@ -239,12 +344,20 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Discord"
+<<<<<<< HEAD
+          icon="D"
+=======
           icon="💬"
+>>>>>>> origin/main
           color="#5865F2"
           values={settings}
           onChange={handleChange}
           fields={[
+<<<<<<< HEAD
+            { key: "discord_webhook_url", label: "Webhook URL", type: "password", placeholder: "https://discord.com/api/webhooks/..." },
+=======
             { key: "discord_webhook_url", label: "Webhook URL", type: "text", placeholder: "https://discord.com/api/webhooks/..." },
+>>>>>>> origin/main
           ]}
           guide={{
             title: "How to get your Discord Webhook URL",
@@ -261,12 +374,20 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Slack"
+<<<<<<< HEAD
+          icon="S"
+=======
           icon="#"
+>>>>>>> origin/main
           color="#4A154B"
           values={settings}
           onChange={handleChange}
           fields={[
+<<<<<<< HEAD
+            { key: "slack_webhook_url", label: "Incoming Webhook URL", type: "password", placeholder: "https://hooks.slack.com/services/..." },
+=======
             { key: "slack_webhook_url", label: "Incoming Webhook URL", type: "text", placeholder: "https://hooks.slack.com/services/..." },
+>>>>>>> origin/main
           ]}
           guide={{
             title: "How to get your Slack Webhook URL",
@@ -282,9 +403,17 @@ export default function SettingsPage() {
           }}
         />
 
+<<<<<<< HEAD
+        <TeamsSection />
+
+        <PlatformSection
+          title="Jira"
+          icon="J"
+=======
         <PlatformSection
           title="Jira"
           icon="🎫"
+>>>>>>> origin/main
           color="#0052CC"
           values={settings}
           onChange={handleChange}
@@ -310,7 +439,11 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Trello"
+<<<<<<< HEAD
+          icon="T"
+=======
           icon="📋"
+>>>>>>> origin/main
           color="#0079BF"
           values={settings}
           onChange={handleChange}

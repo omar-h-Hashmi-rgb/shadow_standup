@@ -1,4 +1,22 @@
 import { NextResponse } from "next/server";
+<<<<<<< HEAD
+import { authenticate, resolveGitHubToken } from "@/lib/auth";
+import { fetchRecentDiffs, fetchCommits, cleanDiff } from "@/lib/github";
+import { groq } from "@/lib/groq";
+import { ANALYSIS_PROMPT, buildAnalysisInput, parseStandupAnalysis, type StandupAnalysis } from "@/lib/prompts";
+import { sendStandupToDiscord, sendStandupToSlack, sendStandupToTeams } from "@/lib/webhooks";
+import { isTeamsConfigured } from "@/lib/teams";
+import { createTrelloCard } from "@/lib/trello";
+import { createJiraIssue } from "@/lib/jira";
+import { loadUserSettingsDecrypted } from "@/lib/user-settings";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { HttpError, handleRouteError, jsonError, readJsonBody, MAX_BODY_BYTES } from "@/lib/http";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { assertOwnerRepo, assertShas, clampString, resolveModel } from "@/lib/validation";
+
+const PLATFORMS = ["discord", "slack", "trello", "jira", "teams"] as const;
+type Platform = (typeof PLATFORMS)[number];
+=======
 import { resolveGitHubToken } from "@/lib/auth";
 import { fetchRecentDiffs, fetchCommits, cleanDiff } from "@/lib/github";
 import { generateWithFallback } from "@/lib/gemini";
@@ -13,6 +31,7 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+>>>>>>> origin/main
 
 function buildFallbackAnalysis(params: {
   author: string;
@@ -41,6 +60,48 @@ function buildFallbackAnalysis(params: {
 }
 
 export async function POST(request: Request) {
+<<<<<<< HEAD
+  const auth = await authenticate(request);
+  if ("response" in auth) return auth.response;
+  const { user } = auth;
+
+  const limited = enforceRateLimit(request, "ai", user.id);
+  if (limited) return limited;
+
+  try {
+    const body = await readJsonBody<{
+      owner?: unknown;
+      repo?: unknown;
+      branch?: unknown;
+      model?: unknown;
+      commitShas?: unknown;
+      platforms?: unknown;
+      discordWebhook?: unknown;
+      slackWebhook?: unknown;
+    }>(request, MAX_BODY_BYTES.medium);
+
+    const { owner, repo } = assertOwnerRepo(body.owner, body.repo);
+    const commitShas = assertShas(body.commitShas);
+    const branch = clampString(body.branch, 100).trim() || "main";
+    const selectedModel = resolveModel(body.model, "gemini");
+
+    if (body.platforms !== undefined && !Array.isArray(body.platforms)) {
+      throw new HttpError("platforms must be an array.", 400);
+    }
+    const activePlatforms: Platform[] = ((body.platforms as unknown[]) || []).filter(
+      (p): p is Platform => typeof p === "string" && (PLATFORMS as readonly string[]).includes(p)
+    );
+    const discordWebhook = typeof body.discordWebhook === "string" ? body.discordWebhook : "";
+    const slackWebhook = typeof body.slackWebhook === "string" ? body.slackWebhook : "";
+
+    console.log("[standup] Received:", { owner, repo, platforms: activePlatforms, commitShas: commitShas.length });
+
+    const { token, error: tokenError } = await resolveGitHubToken(request, user.id);
+    if (!token) return jsonError(tokenError || "GitHub token missing.", 401);
+
+    const commits = await fetchCommits(owner, repo, token);
+    const recentCommits = commitShas.length
+=======
   try {
     const {
       owner,
@@ -70,6 +131,7 @@ export async function POST(request: Request) {
 
     const commits = await fetchCommits(owner, repo, token);
     const recentCommits = commitShas?.length
+>>>>>>> origin/main
       ? commits.filter((c: any) => commitShas.includes(c.sha))
       : commits.slice(0, 10);
 
@@ -77,7 +139,11 @@ export async function POST(request: Request) {
     const author = recentCommits[0]?.author || "Unknown";
 
     let gitDiff = "";
+<<<<<<< HEAD
+    if (commitShas.length) {
+=======
     if (commitShas?.length) {
+>>>>>>> origin/main
       const diffs = await Promise.all(
         commitShas.map((sha: string) => fetchCommitDiffSafe(owner, repo, sha, token))
       );
@@ -96,7 +162,11 @@ export async function POST(request: Request) {
     const promptInput = buildAnalysisInput({
       author,
       repository: repo,
+<<<<<<< HEAD
+      branch,
+=======
       branch: branch || "main",
+>>>>>>> origin/main
       commitMessages,
       mlMetrics,
       gitDiff: gitDiff.slice(0, 50000),
@@ -105,10 +175,18 @@ export async function POST(request: Request) {
     const fullPrompt = `${ANALYSIS_PROMPT}\n\n---\n\nINPUT DATA:\n${promptInput}`;
 
     let rawResponse = "";
+<<<<<<< HEAD
+
+    try {
+      if (selectedModel === "gemini" || selectedModel.startsWith("gemini")) {
+        // Lazy import: a missing Gemini key only affects Gemini requests (which fall back to Groq below).
+        const { generateWithFallback } = await import("@/lib/gemini");
+=======
     const selectedModel = model || "gemini";
 
     try {
       if (selectedModel === "gemini" || selectedModel.startsWith("gemini")) {
+>>>>>>> origin/main
         rawResponse = await generateWithFallback(fullPrompt, {
           temperature: 0.1,
           responseMimeType: "application/json",
@@ -133,7 +211,11 @@ export async function POST(request: Request) {
             { role: "system", content: ANALYSIS_PROMPT },
             { role: "user", content: promptInput },
           ],
+<<<<<<< HEAD
+          model: "openai/gpt-oss-120b",
+=======
           model: "llama-3.1-8b-instant",
+>>>>>>> origin/main
           temperature: 0.1,
         });
         rawResponse = fallback.choices[0]?.message?.content || "";
@@ -146,6 +228,17 @@ export async function POST(request: Request) {
 
     if (!analysis) {
       console.log("[standup] Parse failed, using fallback analysis");
+<<<<<<< HEAD
+      analysis = buildFallbackAnalysis({ author, repo, branch, commitMessages, rawResponse, mlMetrics });
+    }
+
+    // Stored credentials (decrypted server-side only). Falls back to env defaults below.
+    const userSettings = await loadUserSettingsDecrypted(user.id);
+
+    // Each delivery is independent: a failure (or missing config) in one never affects the others.
+    const webhookResults: Record<string, boolean> = {};
+    const webhookSkipped: Record<string, string> = {};
+=======
       analysis = buildFallbackAnalysis({ author, repo, branch: branch || "main", commitMessages, rawResponse, mlMetrics });
     }
 
@@ -165,6 +258,7 @@ export async function POST(request: Request) {
 
     const webhookResults: Record<string, boolean> = {};
     const activePlatforms: string[] = platforms || [];
+>>>>>>> origin/main
 
     console.log("[standup] Delivering to:", activePlatforms);
 
@@ -184,6 +278,18 @@ export async function POST(request: Request) {
       }
     }
 
+<<<<<<< HEAD
+    if (activePlatforms.includes("teams")) {
+      if (isTeamsConfigured()) {
+        webhookResults.teams = await sendStandupToTeams(analysis);
+        console.log("[standup] Teams result:", webhookResults.teams);
+      } else {
+        webhookSkipped.teams = "not_configured";
+      }
+    }
+
+=======
+>>>>>>> origin/main
     if (activePlatforms.includes("trello")) {
       const card = await createTrelloCard({
         name: `Standup: ${analysis.developer} — ${analysis.repository}`,
@@ -214,6 +320,24 @@ export async function POST(request: Request) {
     }
 
     try {
+<<<<<<< HEAD
+      const { error } = await getSupabaseAdmin().from("standups").insert({
+        user_id: user.id,
+        owner,
+        repo,
+        branch: analysis.branch,
+        author: analysis.developer,
+        summary: analysis.summary,
+        complexity_score: analysis.code_review.complexity_score,
+        code_health: analysis.code_review.code_health,
+        yesterday_progress: analysis.yesterday_progress,
+        today_focus: analysis.today_focus,
+        blockers_and_risks: analysis.blockers_and_risks,
+        code_review: analysis.code_review,
+        platforms_delivered: Object.keys(webhookResults).filter((k) => webhookResults[k]),
+      });
+      if (error) console.error("[standup] Database insert failed:", error.message);
+=======
       if (userId) {
         await supabaseAdmin.from("standups").insert({
           user_id: userId,
@@ -231,6 +355,7 @@ export async function POST(request: Request) {
           platforms_delivered: Object.keys(webhookResults).filter((k) => webhookResults[k]),
         });
       }
+>>>>>>> origin/main
     } catch (dbError: any) {
       console.error("[standup] Database insert failed:", dbError.message);
     }
@@ -239,6 +364,12 @@ export async function POST(request: Request) {
       success: true,
       analysis,
       webhooks: webhookResults,
+<<<<<<< HEAD
+      webhookSkipped,
+    });
+  } catch (error) {
+    return handleRouteError(error, "standup");
+=======
     });
   } catch (error: any) {
     console.error("[standup] API error:", error.message);
@@ -246,6 +377,7 @@ export async function POST(request: Request) {
       { success: false, error: error.message || "Internal Server Error" },
       { status: 500 }
     );
+>>>>>>> origin/main
   }
 }
 

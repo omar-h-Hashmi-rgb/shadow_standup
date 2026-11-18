@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+import type { Metadata } from "next";
+import AboutPage from "./about/page";
+
+export const metadata: Metadata = {
+  title: "Shadow Standup",
+  description: "Standups and code reviews generated from your GitHub activity.",
+};
+
+// About is the default page: it is what opens at "/".
+export default AboutPage;
+=======
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -109,3 +121,4 @@ export default function Dashboard() {
 
   return <StandupGenerator userId={session.user.id} />;
 }
+>>>>>>> origin/main

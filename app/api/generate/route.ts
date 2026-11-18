@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+<<<<<<< HEAD
+import { fetchRecentDiffs, fetchCommitDiff, cleanDiff } from '@/lib/github';
+import { groq } from '@/lib/groq';
+import { authenticate, resolveGitHubToken } from '@/lib/auth';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { HttpError, handleRouteError, jsonError, readJsonBody, MAX_BODY_BYTES } from '@/lib/http';
+import { enforceRateLimit } from '@/lib/rate-limit';
+import { assertOwnerRepo, assertShas, resolveModel } from '@/lib/validation';
+=======
 import { fetchRecentDiffs } from '@/lib/github';
 import { supabase } from '@/lib/supabase';
 import { model as geminiModel } from '@/lib/gemini';
@@ -10,6 +19,7 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+>>>>>>> origin/main
 
 /**
  * Aggressively cleans the report text to remove emojis and special characters.
@@ -90,6 +100,37 @@ function formatStandupText(text: string): string {
 }
 
 export async function POST(request: Request) {
+<<<<<<< HEAD
+  const auth = await authenticate(request);
+  if ('response' in auth) return auth.response;
+  const { user } = auth;
+
+  const limited = enforceRateLimit(request, 'ai', user.id);
+  if (limited) return limited;
+
+  try {
+    const body = await readJsonBody<{ owner?: unknown; repo?: unknown; commitShas?: unknown; model?: unknown }>(
+      request,
+      MAX_BODY_BYTES.medium
+    );
+    const { owner, repo } = assertOwnerRepo(body.owner, body.repo);
+    const commitShas = assertShas(body.commitShas);
+    const selectedModel = resolveModel(body.model, 'gemini-3.8-flash');
+
+    const { token, error: tokenError } = await resolveGitHubToken(request, user.id);
+    if (!token) return jsonError(tokenError || 'GitHub token missing.', 401);
+
+    let cleanedDiffs = '';
+    let commitsUsed = 0;
+
+    if (commitShas.length > 0) {
+      const diffs = await Promise.all(commitShas.map((sha: string) => fetchCommitDiff(owner, repo, sha, token)));
+      cleanedDiffs = cleanDiff(diffs.join('\n\n---\n\n'));
+      commitsUsed = commitShas.length;
+    } else {
+      cleanedDiffs = await fetchRecentDiffs(owner, repo, token);
+      commitsUsed = cleanedDiffs ? 1 : 0;
+=======
   try {
     const { owner, repo, commitShas, userId, model } = await request.json();
     const selectedModel = model || 'gemini-2.0-flash';
@@ -146,6 +187,7 @@ export async function POST(request: Request) {
     } else {
       cleanedDiffs = await fetchRecentDiffs(owner, repo, githubToken);
       commitsUsed = cleanedDiffs ? 1 : 0; 
+>>>>>>> origin/main
     }
 
     let summaryText = 'No recent activity found.';
@@ -172,6 +214,10 @@ export async function POST(request: Request) {
       try {
         if (selectedModel.startsWith('gemini')) {
           console.log(`Using Gemini model: ${selectedModel}`);
+<<<<<<< HEAD
+          const { model: geminiModel } = await import('@/lib/gemini');
+=======
+>>>>>>> origin/main
           const result = await geminiModel.generateContent(prompt);
           summaryText = result.response.text();
         } else {
@@ -188,11 +234,19 @@ export async function POST(request: Request) {
         try {
           const fallbackCompletion = await groq.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
+<<<<<<< HEAD
+            model: 'openai/gpt-oss-120b',
+          });
+          summaryText = fallbackCompletion.choices[0]?.message?.content || 'Fallback failed.';
+        } catch (fallbackError: any) {
+          throw new HttpError('All AI models failed to respond.', 502);
+=======
             model: 'llama-3.1-8b-instant',
           });
           summaryText = fallbackCompletion.choices[0]?.message?.content || 'Fallback failed.';
         } catch (fallbackError: any) {
           throw new Error('All AI models failed to respond.');
+>>>>>>> origin/main
         }
       }
 
@@ -200,6 +254,19 @@ export async function POST(request: Request) {
       summaryText = formatStandupText(summaryText);
     }
 
+<<<<<<< HEAD
+    // Save to Supabase (scoped to the verified user)
+    try {
+      const { data, error } = await getSupabaseAdmin()
+        .from('history')
+        .insert([{ user_id: user.id, owner, repo, content: summaryText, commits_count: commitsUsed }])
+        .select()
+        .single();
+
+      if (error) console.error('Database Sync Error:', error.message);
+
+      return NextResponse.json({ success: true, summary: summaryText, data });
+=======
     // Save to Supabase
     try {
       const currentUserId = userId;
@@ -233,6 +300,7 @@ export async function POST(request: Request) {
         warning: 'Summary generated but not saved (no user session).'
       });
 
+>>>>>>> origin/main
     } catch (dbError: any) {
       console.error('Database Insertion Failed:', dbError.message);
       return NextResponse.json({
@@ -242,11 +310,16 @@ export async function POST(request: Request) {
       });
     }
 
+<<<<<<< HEAD
+  } catch (error) {
+    return handleRouteError(error, 'generate');
+=======
   } catch (error: any) {
     console.error('API Error:', error.message);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
+>>>>>>> origin/main
   }
 }

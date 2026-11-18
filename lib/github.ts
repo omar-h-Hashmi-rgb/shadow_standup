@@ -1,5 +1,13 @@
 import axios from 'axios';
 
+<<<<<<< HEAD
+/** Builds `/repos/<owner>/<repo>` with each segment URL-encoded (defence against path injection). */
+function repoApiPath(owner: string, repo: string): string {
+  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+}
+
+=======
+>>>>>>> origin/main
 /**
  * Strips out unnecessary files and truncates large diffs to save LLM tokens.
  */
@@ -63,7 +71,11 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 
   try {
     // 1. Get recent commits
+<<<<<<< HEAD
+    const { data: commits } = await githubApi.get(`${repoApiPath(owner, repo)}/commits`, {
+=======
     const { data: commits } = await githubApi.get(`/repos/${owner}/${repo}/commits`, {
+>>>>>>> origin/main
       params: { since },
     });
 
@@ -73,7 +85,11 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 
     // 2. Fetch diff for each commit
     const diffPromises = commits.map(async (commit: any) => {
+<<<<<<< HEAD
+      const { data: diff } = await githubApi.get(`${repoApiPath(owner, repo)}/commits/${encodeURIComponent(commit.sha)}`, {
+=======
       const { data: diff } = await githubApi.get(`/repos/${owner}/${repo}/commits/${commit.sha}`, {
+>>>>>>> origin/main
         headers: {
           Accept: 'application/vnd.github.v3.diff',
         },
@@ -98,7 +114,11 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 export async function fetchCommits(owner: string, repo: string, token: string) {
   try {
     const response = await axios.get(
+<<<<<<< HEAD
+      `https://api.github.com${repoApiPath(owner, repo)}/commits?per_page=30`,
+=======
       `https://api.github.com/repos/${owner}/${repo}/commits?per_page=30`,
+>>>>>>> origin/main
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -125,7 +145,11 @@ export async function fetchCommits(owner: string, repo: string, token: string) {
 export async function fetchCommitDiff(owner: string, repo: string, sha: string, token: string) {
   try {
     const response = await axios.get(
+<<<<<<< HEAD
+      `https://api.github.com${repoApiPath(owner, repo)}/commits/${encodeURIComponent(sha)}`,
+=======
       `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`,
+>>>>>>> origin/main
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -171,3 +195,121 @@ export async function fetchUserRepositories(token: string) {
     throw error;
   }
 }
+<<<<<<< HEAD
+
+// ---------------------------------------------------------------------------
+// Source browsing (used by the Code Reviewer's file / selection / line /
+// codebase scopes). Same auth + axios conventions as the helpers above.
+// ---------------------------------------------------------------------------
+
+export interface RepoTreeFile {
+  path: string;
+  size: number;
+}
+
+export interface RepoTree {
+  ref: string;
+  files: RepoTreeFile[];
+  truncated: boolean;
+}
+
+function githubClient(token: string) {
+  return axios.create({
+    baseURL: 'https://api.github.com',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+    },
+    timeout: 20000,
+    maxRedirects: 0,
+  });
+}
+
+/**
+ * Lists every file (blob) in the repository at `ref` (default: HEAD, i.e. the
+ * default branch). GitHub truncates very large trees; `truncated` reports it.
+ */
+export async function fetchRepoTree(
+  owner: string,
+  repo: string,
+  token: string,
+  ref: string = 'HEAD'
+): Promise<RepoTree> {
+  try {
+    const { data } = await githubClient(token).get(
+      `${repoApiPath(owner, repo)}/git/trees/${encodeURIComponent(ref)}`,
+      { params: { recursive: 1 }, maxContentLength: 12 * 1024 * 1024 }
+    );
+    const files: RepoTreeFile[] = (data.tree || [])
+      .filter((n: any) => n.type === 'blob' && typeof n.path === 'string')
+      .map((n: any) => ({ path: n.path as string, size: Number(n.size) || 0 }));
+    return { ref, files, truncated: Boolean(data.truncated) };
+  } catch (error: any) {
+    console.error('Fetch Tree Error:', error.response?.status || error.message);
+    throw error;
+  }
+}
+
+export interface RepoFile {
+  path: string;
+  content: string;
+  size: number;
+}
+
+/** Thrown for files that cannot be shown/reviewed as text. */
+export class UnreviewableFileError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnreviewableFileError';
+  }
+}
+
+export const MAX_FILE_BYTES = 400 * 1024;
+
+/**
+ * Fetches a file's raw text. Rejects binary and oversized files with
+ * UnreviewableFileError so callers can show a clear message.
+ */
+export async function fetchFileContent(
+  owner: string,
+  repo: string,
+  path: string,
+  token: string,
+  ref?: string
+): Promise<RepoFile> {
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+  try {
+    const { data } = await githubClient(token).get(
+      `${repoApiPath(owner, repo)}/contents/${encodedPath}`,
+      {
+        params: ref ? { ref } : undefined,
+        headers: { Accept: 'application/vnd.github.raw+json' },
+        responseType: 'text',
+        transformResponse: [(d: unknown) => d],
+        maxContentLength: MAX_FILE_BYTES,
+      }
+    );
+    const content = typeof data === 'string' ? data : '';
+    if (content.includes('\u0000')) {
+      throw new UnreviewableFileError('Binary files cannot be reviewed.');
+    }
+    return { path, content, size: Buffer.byteLength(content, 'utf8') };
+  } catch (error: any) {
+    if (error instanceof UnreviewableFileError) throw error;
+    if (error.code === 'ERR_BAD_RESPONSE' || /maxContentLength/i.test(error.message || '')) {
+      throw new UnreviewableFileError(
+        `File is larger than ${Math.round(MAX_FILE_BYTES / 1024)} KB. Review a line range or selection instead.`
+      );
+    }
+    if (error.response?.status === 404) {
+      throw new UnreviewableFileError('File not found at that path/ref (or the token cannot access it).');
+    }
+    if (error.response?.status === 403 && /too large/i.test(JSON.stringify(error.response?.data || ''))) {
+      throw new UnreviewableFileError('File is too large to fetch. Review a line range or selection instead.');
+    }
+    console.error('Fetch File Error:', error.response?.status || error.message);
+    throw error;
+  }
+}
+=======
+>>>>>>> origin/main
