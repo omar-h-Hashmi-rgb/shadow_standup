@@ -1,0 +1,101 @@
+.card-spotlight {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid #222;
+  background-color: #111;
+  padding: 2rem;
+  overflow: hidden;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --spotlight-color: rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s ease;
+}
+
+.card-spotlight:hover {
+  border-color: #333;
+}
+
+/* Feature Grid Layout */
+.feature-grid {
+  background: #000000;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 10;
+  padding: 10rem 0;
+}
+
+.feature-grid-content {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+@media (min-width: 768px) {
+  .feature-grid-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .feature-grid-content {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Feature Card Specific Styles */
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  background-color: #161616 !important;
+}
+
+.feature-icon {
+  color: #7c6af7; /* Matching var(--accent) */
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0.5rem;
+}
+
+.feature-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8eaf0; /* Matching var(--text-primary) */
+  margin: 0;
+}
+
+.feature-desc {
+  font-size: 14px;
+  color: #7a8099; /* Matching var(--text-secondary) */
+  line-height: 1.6;
+  margin: 0;
+}
+
+.card-spotlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--spotlight-color), transparent 80%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.card-spotlight:hover::before,
+.card-spotlight:focus-within::before {
+  opacity: 0.6;
+}

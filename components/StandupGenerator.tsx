@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD
 import { apiFetch } from "@/lib/api-client";
+=======
+>>>>>>> origin/main
 
 export default function StandupGenerator({
   onGenerated,
@@ -20,12 +23,23 @@ export default function StandupGenerator({
   const [error, setError] = useState<string>("");
   const [token, setToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+<<<<<<< HEAD
   const [selectedModel, setSelectedModel] = useState<string>("gemini-3.8-flash");
 
   const modelOptions = [
     { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", provider: "google" },
     { id: "openai/gpt-oss-120b", name: "GPT OSS 120B", provider: "groq" },
     { id: "qwen/qwen3.8-27b", name: "Qwen 3.8 27B", provider: "groq" },
+=======
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.0-flash");
+
+  const modelOptions = [
+    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "google" },
+    { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", provider: "groq" },
+    { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B", provider: "groq" },
+    { id: "openai/gpt-oss-120b", name: "GPT OSS 120B", provider: "groq" },
+    { id: "qwen/qwen3-32b", name: "Qwen 3 32B", provider: "groq" },
+>>>>>>> origin/main
   ];
 
   useEffect(() => {
@@ -39,7 +53,11 @@ export default function StandupGenerator({
 
   const fetchRepos = async (authToken: string) => {
     try {
+<<<<<<< HEAD
       const res = await apiFetch("/api/github-all-repos", {
+=======
+      const res = await fetch("/api/github-all-repos", {
+>>>>>>> origin/main
         headers: { "x-github-token": authToken },
       });
       const data = await res.json();
@@ -63,7 +81,11 @@ export default function StandupGenerator({
       const [owner, repo] = fullRepo.split("/");
       setFetchingCommits(true);
       try {
+<<<<<<< HEAD
         const res = await apiFetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+=======
+        const res = await fetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+>>>>>>> origin/main
           headers: { "x-github-token": token },
         });
         const data = await res.json();
@@ -103,7 +125,11 @@ export default function StandupGenerator({
     const [owner, repo] = selectedRepo.split("/");
 
     try {
+<<<<<<< HEAD
       const res = await apiFetch("/api/generate", {
+=======
+      const res = await fetch("/api/generate", {
+>>>>>>> origin/main
         method: "POST",
         headers: {
           "Content-Type": "application/json",

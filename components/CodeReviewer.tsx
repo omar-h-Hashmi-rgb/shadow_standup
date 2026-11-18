@@ -2,8 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { apiFetch } from "@/lib/api-client";
 import CodeViewer, { type LineRange } from "@/components/CodeViewer";
+=======
+>>>>>>> origin/main
 
 interface CodeReviewFinding {
   severity?: string;
@@ -26,6 +29,7 @@ interface CodeReviewResult {
   };
   approved: boolean;
   blockers: string[];
+<<<<<<< HEAD
   meta?: {
     scope: ReviewScope;
     label: string;
@@ -46,6 +50,10 @@ const SCOPES: { id: ReviewScope; label: string; hint: string; needsGithub: boole
   { id: "repo", label: "Codebase", hint: "Review the repository's source files", needsGithub: true },
 ];
 
+=======
+}
+
+>>>>>>> origin/main
 const RISK_STYLES: Record<string, { bg: string; color: string; border: string; icon: string }> = {
   low: { bg: "var(--green-dim)", color: "var(--green)", border: "rgba(52,211,153,0.25)", icon: "LOW" },
   medium: { bg: "var(--amber-dim)", color: "var(--amber)", border: "rgba(251,191,36,0.25)", icon: "MED" },
@@ -60,7 +68,11 @@ const SEVERITY_STYLES: Record<string, { bg: string; color: string; border: strin
   low: { bg: "var(--green-dim)", color: "var(--green)", border: "rgba(52,211,153,0.2)" },
 };
 
+<<<<<<< HEAD
 const CATEGORY_META: Record<string, { label: string; icon: React.ReactElement }> = {
+=======
+const CATEGORY_META: Record<string, { label: string; icon: JSX.Element }> = {
+>>>>>>> origin/main
   security: {
     label: "Security",
     icon: (
@@ -105,7 +117,11 @@ function renderSuggestionCode(text: string): React.ReactNode {
   });
 }
 
+<<<<<<< HEAD
 export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
+=======
+export default function CodeReviewer({ userId }: { userId?: string }) {
+>>>>>>> origin/main
   const [repos, setRepos] = useState<any[]>([]);
   const [selectedRepo, setSelectedRepo] = useState("");
   const [commits, setCommits] = useState<any[]>([]);
@@ -113,10 +129,15 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
   const [loading, setLoading] = useState(false);
   const [fetchingCommits, setFetchingCommits] = useState(false);
   const [result, setResult] = useState<CodeReviewResult | null>(null);
+<<<<<<< HEAD
+=======
+  const [rawResponse, setRawResponse] = useState<string>("");
+>>>>>>> origin/main
   const [parseFailed, setParseFailed] = useState(false);
   const [error, setError] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+<<<<<<< HEAD
   const [selectedModel, setSelectedModel] = useState("gemini-3.8-flash");
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
@@ -145,6 +166,20 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", provider: "google" },
     { id: "openai/gpt-oss-120b", name: "GPT OSS 120B", provider: "groq" },
     { id: "qwen/qwen3.8-27b", name: "Qwen 3.8 27B", provider: "groq" },
+=======
+  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+  const [discordWebhook, setDiscordWebhook] = useState("");
+  const [slackWebhook, setSlackWebhook] = useState("");
+  const [expandedFinding, setExpandedFinding] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const modelOptions = [
+    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "google" },
+    { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", provider: "groq" },
+    { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B", provider: "groq" },
+    { id: "openai/gpt-oss-120b", name: "GPT OSS 120B", provider: "groq" },
+    { id: "qwen/qwen3-32b", name: "Qwen 3 32B", provider: "groq" },
+>>>>>>> origin/main
   ];
 
   useEffect(() => {
@@ -152,6 +187,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     if (savedToken) {
       setToken(savedToken);
       fetchRepos(savedToken);
+<<<<<<< HEAD
     } else {
       // No GitHub token: pasted snippets still work.
       setScope("selection");
@@ -170,6 +206,15 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
   const fetchRepos = async (authToken: string) => {
     try {
       const res = await apiFetch("/api/github-all-repos", {
+=======
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  const fetchRepos = async (authToken: string) => {
+    try {
+      const res = await fetch("/api/github-all-repos", {
+>>>>>>> origin/main
         headers: { "x-github-token": authToken },
       });
       const data = await res.json();
@@ -183,6 +228,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     }
   };
 
+<<<<<<< HEAD
   const resetSource = () => {
     setFiles([]);
     setSelectedPath("");
@@ -192,6 +238,8 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     setTreeTruncated(false);
   };
 
+=======
+>>>>>>> origin/main
   const handleRepoChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const fullRepo = e.target.value;
     setSelectedRepo(fullRepo);
@@ -199,6 +247,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     setCommits([]);
     setResult(null);
     setParseFailed(false);
+<<<<<<< HEAD
     resetSource();
 
     if (fullRepo && token) {
@@ -206,6 +255,15 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
       setFetchingCommits(true);
       try {
         const res = await apiFetch(`/api/commits?owner=${encodeURIComponent(o)}&repo=${encodeURIComponent(r)}`, {
+=======
+    setRawResponse("");
+
+    if (fullRepo && token) {
+      const [owner, repo] = fullRepo.split("/");
+      setFetchingCommits(true);
+      try {
+        const res = await fetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+>>>>>>> origin/main
           headers: { "x-github-token": token },
         });
         const data = await res.json();
@@ -218,6 +276,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     }
   };
 
+<<<<<<< HEAD
   // Load the repo's file list the first time a file-based scope needs it.
   const needsFiles = scope === "file" || scope === "lines" || (scope === "selection" && !pasteMode);
   useEffect(() => {
@@ -278,6 +337,8 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     if (next === "selection" && !token) setPasteMode(true);
   };
 
+=======
+>>>>>>> origin/main
   const toggleSha = (sha: string) => {
     setSelectedShas((prev) =>
       prev.includes(sha) ? prev.filter((s) => s !== sha) : [...prev, sha]
@@ -293,6 +354,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     setSelectedShas(commits.map((c) => c.sha));
   };
 
+<<<<<<< HEAD
   const setRangeField = (field: "start" | "end", raw: string) => {
     const n = parseInt(raw, 10);
     if (Number.isNaN(n)) return setRange(null);
@@ -326,10 +388,15 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
 
   const generateReview = async () => {
     if (!readiness.ready) return;
+=======
+  const generateReview = async () => {
+    if (!selectedRepo || !token || selectedShas.length === 0) return;
+>>>>>>> origin/main
     setLoading(true);
     setError("");
     setResult(null);
     setParseFailed(false);
+<<<<<<< HEAD
 
     const body: Record<string, unknown> = {
       scope,
@@ -364,12 +431,35 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
           ...(token ? { "x-github-token": token } : {}),
         },
         body: JSON.stringify(body),
+=======
+    setRawResponse("");
+
+    const [owner, repo] = selectedRepo.split("/");
+
+    try {
+      const res = await fetch("/api/code-review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-github-token": token,
+        },
+        body: JSON.stringify({
+          owner,
+          repo,
+          commitShas: selectedShas,
+          userId,
+          model: selectedModel,
+          discordWebhook: discordWebhook || undefined,
+          slackWebhook: slackWebhook || undefined,
+        }),
+>>>>>>> origin/main
       });
 
       const data = await res.json();
       if (data.success && data.review) {
         setResult(data.review);
         setParseFailed(data.review.blockers?.includes("AI response could not be parsed as structured JSON."));
+<<<<<<< HEAD
         const sent = [
           data.webhooks?.discord && "Discord",
           data.webhooks?.slack && "Slack",
@@ -379,6 +469,15 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
         const failed = Object.entries(data.webhooks || {}).filter(([, ok]) => !ok).map(([k]) => k);
         if (failed.length) toast.error(`Could not notify: ${failed.join(", ")}`);
         toast.success(`Review complete: ${data.findingsCount} finding(s)`);
+=======
+        if (data.webhooks?.discord || data.webhooks?.slack) {
+          toast.success(`Review sent to ${data.webhooks.discord ? "Discord" : ""}${data.webhooks.discord && data.webhooks.slack ? " & " : ""}${data.webhooks.slack ? "Slack" : ""}`);
+        }
+        toast.success(`Review complete: ${data.findingsCount} finding(s)`);
+      } else if (data.success && data.rawResponse) {
+        setRawResponse(data.rawResponse);
+        setParseFailed(true);
+>>>>>>> origin/main
       } else {
         setError(data.error || "Something went wrong.");
       }
@@ -431,6 +530,23 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
     );
   }
 
+<<<<<<< HEAD
+=======
+  if (!token) {
+    return (
+      <div className="review-page">
+        <div className="summary-panel">
+          <div className="panel-label">GitHub token required</div>
+          <p className="panel-subtle">Set your Personal Access Token to load repositories.</p>
+          <div className="summary-actions">
+            <a className="btn-primary" href="/settings">Open Settings</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+>>>>>>> origin/main
   return (
     <div className="review-page">
       <div className="review-header">
@@ -439,6 +555,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
           <p className="review-date">{todayLabel}</p>
         </div>
         <div className="review-stats">
+<<<<<<< HEAD
           {scope === "commits" && (
             <>
               <div className="stat-chip">
@@ -451,6 +568,16 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
               </div>
             </>
           )}
+=======
+          <div className="stat-chip">
+            <span className="stat-number">{commits.length}</span>
+            <span className="stat-label">commits</span>
+          </div>
+          <div className="stat-chip">
+            <span className="stat-number">{selectedShas.length}</span>
+            <span className="stat-label green">selected</span>
+          </div>
+>>>>>>> origin/main
           {result && (
             <>
               <div className="stat-chip" style={{ borderColor: RISK_STYLES[result.riskLevel]?.border }}>
@@ -470,6 +597,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
 
       <div className="review-body">
         <section className="commits-panel">
+<<<<<<< HEAD
           <div className="panel-label">Review scope</div>
 
           <div className="segmented" role="tablist" aria-label="Review scope">
@@ -502,12 +630,28 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
             <div className="control-row">
               <label className="control-label" htmlFor="cr-model">AI model</label>
               <select id="cr-model" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="control-select">
+=======
+          <div className="panel-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="1.05" y1="12" x2="7" y2="12" />
+              <line x1="17.01" y1="12" x2="22.96" y2="12" />
+            </svg>
+            GitHub activity
+          </div>
+
+          <div className="panel-controls">
+            <div className="control-row">
+              <label className="control-label">AI model</label>
+              <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="control-select">
+>>>>>>> origin/main
                 {modelOptions.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
             </div>
 
+<<<<<<< HEAD
             {!(scope === "selection" && pasteMode) && (
               <div className="control-row">
                 <label className="control-label" htmlFor="cr-repo">Repository</label>
@@ -728,6 +872,68 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
                 id="cr-discord"
                 type="password"
                 autoComplete="off"
+=======
+            <div className="control-row">
+              <label className="control-label">Repository</label>
+              <select value={selectedRepo} onChange={handleRepoChange} className="control-select">
+                <option value="">Choose a repo...</option>
+                {repos.map((r) => (
+                  <option key={`${r.owner}/${r.name}`} value={`${r.owner}/${r.name}`}>
+                    {r.owner}/{r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="control-actions">
+              <button onClick={selectLast24Hours} className="control-action" disabled={!commits.length}>
+                Past 24 hours
+              </button>
+              <button onClick={selectAllCommits} className="control-action" disabled={!commits.length}>
+                All commits
+              </button>
+            </div>
+          </div>
+
+          <div className="commits-list">
+            {fetchingCommits ? (
+              <div className="panel-subtle">Fetching commits...</div>
+            ) : commits.length > 0 ? (
+              commits.map((c) => (
+                <div key={c.sha} className="commit-card" onClick={() => toggleSha(c.sha)}>
+                  <input
+                    className="commit-check"
+                    type="checkbox"
+                    checked={selectedShas.includes(c.sha)}
+                    onChange={() => toggleSha(c.sha)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="commit-body">
+                    <div className="commit-top">
+                      <span className="commit-repo">{selectedRepo || "repo"}</span>
+                      <span className="commit-time">{new Date(c.date).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="commit-message">{c.message}</p>
+                    <div className="commit-meta">
+                      <span className="commit-sha">{c.sha.slice(0, 7)}</span>
+                      <span className="panel-subtle">{c.author}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="panel-subtle">No commits found.</div>
+            )}
+          </div>
+
+          {error && <div className="alert-banner">{error}</div>}
+
+          <div className="panel-controls" style={{ marginTop: "1rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+            <div className="control-row">
+              <label className="control-label">Discord Webhook (optional)</label>
+              <input
+                type="text"
+>>>>>>> origin/main
                 value={discordWebhook}
                 onChange={(e) => setDiscordWebhook(e.target.value)}
                 placeholder="https://discord.com/api/webhooks/..."
@@ -735,11 +941,17 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
               />
             </div>
             <div className="control-row">
+<<<<<<< HEAD
               <label className="control-label" htmlFor="cr-slack">Slack Webhook (optional)</label>
               <input
                 id="cr-slack"
                 type="password"
                 autoComplete="off"
+=======
+              <label className="control-label">Slack Webhook (optional)</label>
+              <input
+                type="text"
+>>>>>>> origin/main
                 value={slackWebhook}
                 onChange={(e) => setSlackWebhook(e.target.value)}
                 placeholder="https://hooks.slack.com/services/..."
@@ -749,9 +961,19 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
           </div>
 
           <div className="summary-actions" style={{ marginTop: "0.75rem" }}>
+<<<<<<< HEAD
             <button className="btn-primary" onClick={generateReview} disabled={loading || !readiness.ready}>
               {loading ? <span className="spinner" /> : null}
               {loading ? "Reviewing..." : readiness.label}
+=======
+            <button
+              className="btn-primary"
+              onClick={generateReview}
+              disabled={loading || selectedShas.length === 0}
+            >
+              {loading ? <span className="spinner" /> : null}
+              {loading ? "Reviewing..." : `Review (${selectedShas.length})`}
+>>>>>>> origin/main
             </button>
           </div>
         </section>
@@ -770,8 +992,13 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.2 }}>
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
+<<<<<<< HEAD
               <p>Choose what to review</p>
               <span>Commits, a file, a selection, specific lines, or a whole codebase — analysed for security, quality, performance, and best practices</span>
+=======
+              <p>Select commits and generate a review</p>
+              <span>AI will analyze your code diff for security, quality, performance, and best practices</span>
+>>>>>>> origin/main
             </div>
           )}
 
@@ -779,7 +1006,11 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
             <div className="review-loading-state">
               <div className="review-loading-pulse" />
               <span className="spinner" />
+<<<<<<< HEAD
               <p>Analyzing code...</p>
+=======
+              <p>Analyzing code diff...</p>
+>>>>>>> origin/main
             </div>
           )}
 
@@ -791,7 +1022,11 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
                 </svg>
               </div>
               <p>AI response could not be parsed as structured JSON.</p>
+<<<<<<< HEAD
               <span>Try a different model or a smaller scope.</span>
+=======
+              <span>Try a different model or fewer commits.</span>
+>>>>>>> origin/main
             </div>
           )}
 
@@ -829,6 +1064,7 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
                 </div>
               </div>
 
+<<<<<<< HEAD
               {result.meta && (
                 <div className="review-scope-note">
                   <span className="scope-pill">{SCOPES.find((x) => x.id === result.meta!.scope)?.label}</span>
@@ -844,6 +1080,8 @@ export default function CodeReviewer({ userId: _userId }: { userId?: string }) {
                 </div>
               )}
 
+=======
+>>>>>>> origin/main
               {/* Summary */}
               <div className="review-summary-card">
                 <div className="review-summary-card-label">Summary</div>

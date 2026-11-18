@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD
 import { apiFetch } from "@/lib/api-client";
+=======
+>>>>>>> origin/main
 import { toast } from "sonner";
 
 interface StandupAnalysis {
@@ -41,6 +44,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
   const [selectedModel, setSelectedModel] = useState("gemini");
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
+<<<<<<< HEAD
   const [platforms, setPlatforms] = useState<string[]>(["discord", "slack", "trello", "jira", "teams"]);
   const [teamsConfigured, setTeamsConfigured] = useState<boolean | null>(null);
   const [deliveryResults, setDeliveryResults] = useState<Record<string, boolean> | null>(null);
@@ -57,6 +61,18 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
       .then((d) => setTeamsConfigured(d.success ? !!d.teams?.configured : false))
       .catch(() => setTeamsConfigured(false));
 
+=======
+  const [platforms, setPlatforms] = useState<string[]>(["discord", "slack", "trello", "jira"]);
+  const [deliveryResults, setDeliveryResults] = useState<Record<string, boolean> | null>(null);
+
+  const modelOptions = [
+    { id: "gemini", name: "Gemini (Recommended)" },
+    { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B" },
+    { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B" },
+  ];
+
+  useEffect(() => {
+>>>>>>> origin/main
     const savedToken = localStorage.getItem("github_token");
     if (savedToken) {
       setToken(savedToken);
@@ -67,7 +83,11 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
 
   const fetchRepos = async (authToken: string) => {
     try {
+<<<<<<< HEAD
       const res = await apiFetch("/api/github-all-repos", {
+=======
+      const res = await fetch("/api/github-all-repos", {
+>>>>>>> origin/main
         headers: { "x-github-token": authToken },
       });
       const data = await res.json();
@@ -89,7 +109,11 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
       const [owner, repo] = fullRepo.split("/");
       setFetchingCommits(true);
       try {
+<<<<<<< HEAD
         const res = await apiFetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+=======
+        const res = await fetch(`/api/commits?owner=${owner}&repo=${repo}`, {
+>>>>>>> origin/main
           headers: { "x-github-token": token },
         });
         const data = await res.json();
@@ -129,7 +153,11 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
     const [owner, repo] = selectedRepo.split("/");
 
     try {
+<<<<<<< HEAD
       const res = await apiFetch("/api/standup", {
+=======
+      const res = await fetch("/api/standup", {
+>>>>>>> origin/main
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -151,7 +179,10 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
       const data = await res.json();
       if (data.success && data.analysis) {
         setResult(data.analysis);
+<<<<<<< HEAD
         if (data.webhookSkipped?.teams) toast.info("Microsoft Teams skipped: not configured on the server");
+=======
+>>>>>>> origin/main
         if (data.webhooks) {
           setDeliveryResults(data.webhooks);
           const delivered = Object.entries(data.webhooks)
@@ -296,6 +327,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
             <div className="control-row">
               <label className="control-label">Deliver to</label>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+<<<<<<< HEAD
                 {["discord", "slack", "teams", "trello", "jira"].map((p) => {
                   const unavailable = p === "teams" && teamsConfigured === false;
                   const isActive = platforms.includes(p) && !unavailable;
@@ -312,6 +344,33 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
                     >
                       {label}
                       {unavailable && <span className="chip-note">not configured</span>}
+=======
+                {["discord", "slack", "trello", "jira"].map((p) => {
+                  const isActive = platforms.includes(p);
+                  const icon = p === "discord" ? "💬" : p === "slack" ? "#" : p === "trello" ? "📋" : "🎫";
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => togglePlatform(p)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        border: `1px solid ${isActive ? "var(--accent)" : "var(--border)"}`,
+                        background: isActive ? "var(--accent-dim, rgba(108,92,231,0.1))" : "var(--surface)",
+                        color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        fontWeight: isActive ? "600" : "400",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {icon}
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                      {isActive && <span style={{ color: "var(--green)" }}>✓</span>}
+>>>>>>> origin/main
                     </button>
                   );
                 })}

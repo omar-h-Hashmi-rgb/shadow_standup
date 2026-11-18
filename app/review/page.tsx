@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -48,3 +49,8 @@ export default function ReviewPage() {
 
   return <StandupGenerator userId={session.user.id} />;
 }
+=======
+import ReviewPage from "../page";
+
+export default ReviewPage;
+>>>>>>> origin/main

@@ -138,6 +138,7 @@ export function formatForJira(analysis: StandupAnalysis): string {
 
   return lines.join("\n");
 }
+<<<<<<< HEAD
 
 // ===== Microsoft Teams (Workflows webhook → Adaptive Card) =====
 //
@@ -293,3 +294,5 @@ export function formatTeamsTestMessage(): object {
     },
   ]);
 }
+=======
+>>>>>>> origin/main
