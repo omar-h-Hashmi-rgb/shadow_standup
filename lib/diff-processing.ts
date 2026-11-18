@@ -42,13 +42,9 @@ const HUNK_HEADER_RE = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@ ?(.*)$/;
 // Rough character budget used as a token-count proxy (~4 chars/token).
 // Keeps the diff well within context limits for the models in use while
 // leaving room for the system prompt and JSON response.
-<<<<<<< HEAD
 // Keep the prompt below the token-per-minute limits of the configured
 // providers while leaving room for the review instructions and response.
 const DEFAULT_MAX_DIFF_CHARS = 20000;
-=======
-const DEFAULT_MAX_DIFF_CHARS = 60000;
->>>>>>> origin/main
 
 export function shouldSkipFile(filename: string): boolean {
   return SKIP_PATTERNS.some((pattern) => filename.includes(pattern));
@@ -269,7 +265,6 @@ export function buildStructuredReviewDiff(
 
   return { diffText, totalFiles: allFiles.length, reviewedFiles, skippedFiles };
 }
-<<<<<<< HEAD
 
 // ---------------------------------------------------------------------------
 // Source snapshots (file / selection / line range / codebase reviews)
@@ -420,5 +415,3 @@ export function buildSourceReviewDiff(
     truncated: coverage.some((c) => c.truncated) || skippedFiles.length > 0,
   };
 }
-=======
->>>>>>> origin/main

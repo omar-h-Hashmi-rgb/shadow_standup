@@ -3,7 +3,6 @@
 import React from "react";
 import { supabase } from "@/lib/supabase";
 import { CodeXml } from "lucide-react";
-<<<<<<< HEAD
 import { toast } from "sonner";
 
 export default function Auth() {
@@ -12,7 +11,7 @@ export default function Auth() {
     // they return from GitHub (see PostLoginRedirect). The OAuth redirect URL
     // itself is unchanged, so no Supabase redirect configuration is affected.
     try {
-      sessionStorage.setItem("post_login_redirect", "/review");
+      sessionStorage.setItem("post_login_redirect", "/standup");
     } catch {
       /* storage unavailable: user simply lands on the default page */
     }
@@ -30,23 +29,10 @@ export default function Auth() {
         description: error.message,
       });
     }
-=======
-
-export default function Auth() {
-  const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        scopes: 'repo',
-        redirectTo: window.location.origin
-      }
-    });
->>>>>>> origin/main
   };
 
   return (
     <div className="auth-card">
-<<<<<<< HEAD
       <h2 className="auth-title">Continue with GitHub</h2>
       <p className="auth-subtitle">Sign in to connect your repositories.</p>
 
@@ -54,16 +40,6 @@ export default function Auth() {
         <CodeXml size={16} />
         Sign in with GitHub
       </button>
-=======
-      <h2 className="auth-title">Welcome Back</h2>
-      <p className="auth-subtitle">Sign in with your GitHub account to continue.</p>
-
-      <button onClick={handleLogin} className="auth-button">
-        <CodeXml size={18} />
-        Sign in with GitHub
-      </button>
-
->>>>>>> origin/main
     </div>
   );
 }

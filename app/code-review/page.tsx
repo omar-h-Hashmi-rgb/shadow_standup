@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import CodeReviewer from "@/components/CodeReviewer";
+import Auth from "@/components/Auth";
 
 export default function CodeReviewPage() {
   const [session, setSession] = useState<any>(null);
@@ -31,14 +32,14 @@ export default function CodeReviewPage() {
 
   if (!session) {
     return (
-      <div className="review-page">
-        <div className="summary-panel">
-          <div className="panel-label">Sign in required</div>
-          <p className="panel-subtle">Sign in to use the code review feature.</p>
-          <div className="summary-actions">
-            <a className="btn-primary" href="/">Go to Login</a>
-          </div>
+      <div className="signin-page">
+        <div className="signin-copy">
+          <h1 className="signin-title">Sign in to Code Reviewer</h1>
+          <p className="signin-desc">
+            Connect your GitHub account to inspect files, commits, and line ranges with AI review.
+          </p>
         </div>
+        <Auth />
       </div>
     );
   }

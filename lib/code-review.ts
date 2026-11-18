@@ -113,7 +113,6 @@ export interface CodeReviewCategory {
   findings: CodeReviewFinding[];
 }
 
-<<<<<<< HEAD
 /** What the reviewer is pointed at. 'commits' is the original diff-based behaviour. */
 export type ReviewScope = 'commits' | 'repo' | 'file' | 'selection' | 'lines';
 
@@ -138,8 +137,6 @@ export interface ReviewMeta {
   notes?: string[];
 }
 
-=======
->>>>>>> origin/main
 export interface CodeReviewResult {
   summary: string;
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
@@ -151,7 +148,6 @@ export interface CodeReviewResult {
   };
   approved: boolean;
   blockers: string[];
-<<<<<<< HEAD
   meta?: ReviewMeta;
 }
 
@@ -216,8 +212,6 @@ export function restrictFindingsToRange(result: CodeReviewResult, start: number,
     result.categories[key].findings = kept;
   }
   return dropped;
-=======
->>>>>>> origin/main
 }
 
 const CODE_FENCE_REGEX_START = /^```(?:json)?\s*\n?/i;

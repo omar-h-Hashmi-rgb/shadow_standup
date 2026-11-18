@@ -1,12 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
 import { apiFetch } from "@/lib/api-client";
 import { Save, ExternalLink, ChevronDown, ChevronUp, Send } from "lucide-react";
-=======
-import { Save, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
->>>>>>> origin/main
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -116,26 +112,10 @@ function PlatformSection({
   return (
     <div className="settings-section">
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-<<<<<<< HEAD
         <span className="platform-mark">{icon}</span>
         <div className="settings-section-title" style={{ margin: 0 }}>{title}</div>
                 <span className={`status-badge ${isComplete ? "ok" : "warn"}`}>
           {isComplete ? "Configured" : filledCount === 0 ? "Not configured" : `${filledCount}/${fields.length} fields`}
-=======
-        <span style={{ fontSize: "20px" }}>{icon}</span>
-        <div className="settings-section-title" style={{ margin: 0 }}>{title}</div>
-        {isComplete && <CheckCircle2 size={16} style={{ color: "var(--green)" }} />}
-        <span style={{
-          marginLeft: "auto",
-          fontSize: "11px",
-          padding: "2px 8px",
-          borderRadius: "10px",
-          background: isComplete ? "var(--green-dim, rgba(52,211,153,0.1))" : "var(--amber-dim, rgba(251,191,36,0.1))",
-          color: isComplete ? "var(--green)" : "var(--amber)",
-          border: `1px solid ${isComplete ? "rgba(52,211,153,0.3)" : "rgba(251,191,36,0.3)"}`,
-        }}>
-          {filledCount}/{fields.length}
->>>>>>> origin/main
         </span>
       </div>
       {fields.map((f) => (
@@ -155,7 +135,6 @@ function PlatformSection({
   );
 }
 
-<<<<<<< HEAD
 interface TeamsStatus {
   configured: boolean;
   reason?: "missing" | "invalid";
@@ -223,8 +202,6 @@ function TeamsSection() {
   );
 }
 
-=======
->>>>>>> origin/main
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULTS);
   const [githubToken, setGithubToken] = useState("");
@@ -248,11 +225,7 @@ export default function SettingsPage() {
 
   const loadSettings = async (uid: string) => {
     try {
-<<<<<<< HEAD
       const res = await apiFetch("/api/settings");
-=======
-      const res = await fetch(`/api/settings?userId=${uid}`);
->>>>>>> origin/main
       const data = await res.json();
       if (data.success && data.settings) {
         setSettings(data.settings);
@@ -273,25 +246,15 @@ export default function SettingsPage() {
     if (userId) {
       setSaving(true);
       try {
-<<<<<<< HEAD
         const res = await apiFetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ settings }),
-=======
-        const res = await fetch("/api/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, settings }),
->>>>>>> origin/main
         });
         const data = await res.json();
         if (data.success) {
           toast.success("Settings saved to your profile");
-<<<<<<< HEAD
           if (userId) loadSettings(userId);
-=======
->>>>>>> origin/main
         } else {
           toast.error(data.error || "Failed to save");
         }
@@ -311,11 +274,7 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-<<<<<<< HEAD
       <div className="settings-card" id="integrations">
-=======
-      <div className="settings-card">
->>>>>>> origin/main
         <div style={{ marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 4px" }}>Integration Settings</h2>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0 }}>
@@ -323,11 +282,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-<<<<<<< HEAD
         <div className="settings-section" id="github">
-=======
-        <div className="settings-section">
->>>>>>> origin/main
           <div className="settings-section-title">GitHub</div>
           <div className="settings-field">
             <label className="settings-label">Personal Access Token</label>
@@ -344,20 +299,12 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Discord"
-<<<<<<< HEAD
           icon="D"
-=======
-          icon="💬"
->>>>>>> origin/main
           color="#5865F2"
           values={settings}
           onChange={handleChange}
           fields={[
-<<<<<<< HEAD
             { key: "discord_webhook_url", label: "Webhook URL", type: "password", placeholder: "https://discord.com/api/webhooks/..." },
-=======
-            { key: "discord_webhook_url", label: "Webhook URL", type: "text", placeholder: "https://discord.com/api/webhooks/..." },
->>>>>>> origin/main
           ]}
           guide={{
             title: "How to get your Discord Webhook URL",
@@ -374,20 +321,12 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Slack"
-<<<<<<< HEAD
           icon="S"
-=======
-          icon="#"
->>>>>>> origin/main
           color="#4A154B"
           values={settings}
           onChange={handleChange}
           fields={[
-<<<<<<< HEAD
             { key: "slack_webhook_url", label: "Incoming Webhook URL", type: "password", placeholder: "https://hooks.slack.com/services/..." },
-=======
-            { key: "slack_webhook_url", label: "Incoming Webhook URL", type: "text", placeholder: "https://hooks.slack.com/services/..." },
->>>>>>> origin/main
           ]}
           guide={{
             title: "How to get your Slack Webhook URL",
@@ -403,17 +342,11 @@ export default function SettingsPage() {
           }}
         />
 
-<<<<<<< HEAD
         <TeamsSection />
 
         <PlatformSection
           title="Jira"
           icon="J"
-=======
-        <PlatformSection
-          title="Jira"
-          icon="🎫"
->>>>>>> origin/main
           color="#0052CC"
           values={settings}
           onChange={handleChange}
@@ -439,11 +372,7 @@ export default function SettingsPage() {
 
         <PlatformSection
           title="Trello"
-<<<<<<< HEAD
           icon="T"
-=======
-          icon="📋"
->>>>>>> origin/main
           color="#0079BF"
           values={settings}
           onChange={handleChange}
