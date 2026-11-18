@@ -34,7 +34,6 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-<<<<<<< HEAD
 
 ---
 
@@ -76,5 +75,3 @@ See `lib/review-input.ts` for the exact parameters of each scope.
 All `/api/*` routes require `Authorization: Bearer <Supabase access token>`; the user id always comes from the verified token.
 Cross-origin API access is denied unless the origin is listed in `ALLOWED_ORIGINS`.
 Rate limiting is in-memory (per server instance); use a shared store such as Redis/Upstash for strict global limits.
-=======
->>>>>>> origin/main

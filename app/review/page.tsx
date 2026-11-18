@@ -1,9 +1,8 @@
-<<<<<<< HEAD
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import StandupGenerator from "@/components/StandupGenerator";
+import StandupDashboard from "@/components/StandupDashboard";
 import Auth from "@/components/Auth";
 
 export default function ReviewPage() {
@@ -47,10 +46,5 @@ export default function ReviewPage() {
     );
   }
 
-  return <StandupGenerator userId={session.user.id} />;
+  return <StandupDashboard userId={session.user.id} />;
 }
-=======
-import ReviewPage from "../page";
-
-export default ReviewPage;
->>>>>>> origin/main

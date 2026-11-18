@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { ChevronRight, History as HistoryIcon, Loader2, Trash2 } from "lucide-react";
+import { ChevronRight, History as HistoryIcon, Loader2, Trash2, X } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { StandupPDF } from "@/components/StandupPDF";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import Auth from "@/components/Auth";
 
 export default function HistoryPage() {
   const [session, setSession] = useState<any>(null);
@@ -23,7 +25,17 @@ export default function HistoryPage() {
     setIsClient(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (!session) setLoading(false);
     });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -74,6 +86,31 @@ export default function HistoryPage() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="history-page">
+        <div className="panel-label">
+          <Loader2 size={16} className="icon-spin" />
+          Syncing history...
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="signin-page">
+        <div className="signin-copy">
+          <h1 className="signin-title">Sign in to view History</h1>
+          <p className="signin-desc">
+            Your past stand-up summaries and exported reports are tied to your authenticated account.
+          </p>
+        </div>
+        <Auth />
+      </div>
+    );
+  }
+
   return (
     <div className="history-page">
       <div className="history-header">
@@ -93,12 +130,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="panel-label">
-          <Loader2 size={16} className="icon-spin" />
-          Syncing history...
-        </div>
-      ) : standups.length > 0 ? (
+      {standups.length > 0 ? (
         <div className="history-list">
           {standups.map((item) => {
             const isExpanded = expandedId === item.id;
@@ -166,7 +198,10 @@ export default function HistoryPage() {
       ) : (
         <div className="empty-state">
           <HistoryIcon size={32} />
-          <p>No stand-ups yet. Generate your first one on the Review tab.</p>
+          <p>No stand-ups yet. Generate your first one to start tracking history.</p>
+          <Link href="/standup" className="btn-primary" style={{ marginTop: "12px", display: "inline-flex" }}>
+            Create Standup
+          </Link>
         </div>
       )}
 
@@ -183,8 +218,8 @@ export default function HistoryPage() {
                   Generated on {new Date(selectedStandup.created_at).toLocaleString()}
                 </p>
               </div>
-              <button className="report-close" onClick={() => setSelectedStandup(null)}>
-                <ChevronRight size={20} className="report-close-icon" />
+              <button className="report-close" onClick={() => setSelectedStandup(null)} aria-label="Close report">
+                <X size={18} className="report-close-icon" />
               </button>
             </div>
 

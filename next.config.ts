@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-<<<<<<< HEAD
 const isDev = process.env.NODE_ENV !== "production";
 
 function supabaseOrigins(): string[] {
@@ -53,10 +52,6 @@ const nextConfig: NextConfig = {
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];
   },
-=======
-const nextConfig: NextConfig = {
-  /* config options here */
->>>>>>> origin/main
 };
 
 export default nextConfig;

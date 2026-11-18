@@ -30,15 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-<<<<<<< HEAD
 # env files — never commit real secrets; only the placeholder template is tracked
 .env
 .env.*
 !.env.example
-=======
-# env files (can opt-in for committing if needed)
-.env*
->>>>>>> origin/main
 
 # vercel
 .vercel

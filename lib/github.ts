@@ -1,13 +1,10 @@
 import axios from 'axios';
 
-<<<<<<< HEAD
 /** Builds `/repos/<owner>/<repo>` with each segment URL-encoded (defence against path injection). */
 function repoApiPath(owner: string, repo: string): string {
   return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 }
 
-=======
->>>>>>> origin/main
 /**
  * Strips out unnecessary files and truncates large diffs to save LLM tokens.
  */
@@ -71,11 +68,7 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 
   try {
     // 1. Get recent commits
-<<<<<<< HEAD
     const { data: commits } = await githubApi.get(`${repoApiPath(owner, repo)}/commits`, {
-=======
-    const { data: commits } = await githubApi.get(`/repos/${owner}/${repo}/commits`, {
->>>>>>> origin/main
       params: { since },
     });
 
@@ -85,11 +78,7 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 
     // 2. Fetch diff for each commit
     const diffPromises = commits.map(async (commit: any) => {
-<<<<<<< HEAD
       const { data: diff } = await githubApi.get(`${repoApiPath(owner, repo)}/commits/${encodeURIComponent(commit.sha)}`, {
-=======
-      const { data: diff } = await githubApi.get(`/repos/${owner}/${repo}/commits/${commit.sha}`, {
->>>>>>> origin/main
         headers: {
           Accept: 'application/vnd.github.v3.diff',
         },
@@ -114,11 +103,7 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
 export async function fetchCommits(owner: string, repo: string, token: string) {
   try {
     const response = await axios.get(
-<<<<<<< HEAD
       `https://api.github.com${repoApiPath(owner, repo)}/commits?per_page=30`,
-=======
-      `https://api.github.com/repos/${owner}/${repo}/commits?per_page=30`,
->>>>>>> origin/main
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -145,11 +130,7 @@ export async function fetchCommits(owner: string, repo: string, token: string) {
 export async function fetchCommitDiff(owner: string, repo: string, sha: string, token: string) {
   try {
     const response = await axios.get(
-<<<<<<< HEAD
       `https://api.github.com${repoApiPath(owner, repo)}/commits/${encodeURIComponent(sha)}`,
-=======
-      `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`,
->>>>>>> origin/main
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -195,7 +176,6 @@ export async function fetchUserRepositories(token: string) {
     throw error;
   }
 }
-<<<<<<< HEAD
 
 // ---------------------------------------------------------------------------
 // Source browsing (used by the Code Reviewer's file / selection / line /
@@ -311,5 +291,3 @@ export async function fetchFileContent(
     throw error;
   }
 }
-=======
->>>>>>> origin/main

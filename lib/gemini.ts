@@ -14,11 +14,7 @@ if (keys.length === 0) {
 const clients = keys.map((key) => new GoogleGenerativeAI(key));
 
 export const model = clients[0].getGenerativeModel({
-<<<<<<< HEAD
   model: "gemini-3.8-flash",
-=======
-  model: "gemini-3.6-flash",
->>>>>>> origin/main
 });
 
 export async function generateWithFallback(
@@ -33,11 +29,7 @@ export async function generateWithFallback(
   for (let i = 0; i < clients.length; i++) {
     try {
       const genModel = clients[i].getGenerativeModel({
-<<<<<<< HEAD
         model: "gemini-3.8-flash",
-=======
-        model: "gemini-3.6-flash",
->>>>>>> origin/main
       });
 
       const result = await genModel.generateContent({

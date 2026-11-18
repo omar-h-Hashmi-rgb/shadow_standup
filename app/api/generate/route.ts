@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-<<<<<<< HEAD
 import { fetchRecentDiffs, fetchCommitDiff, cleanDiff } from '@/lib/github';
 import { groq } from '@/lib/groq';
 import { authenticate, resolveGitHubToken } from '@/lib/auth';
@@ -7,19 +6,6 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { HttpError, handleRouteError, jsonError, readJsonBody, MAX_BODY_BYTES } from '@/lib/http';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { assertOwnerRepo, assertShas, resolveModel } from '@/lib/validation';
-=======
-import { fetchRecentDiffs } from '@/lib/github';
-import { supabase } from '@/lib/supabase';
-import { model as geminiModel } from '@/lib/gemini';
-import { groq } from '@/lib/groq';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize admin client for server-side persistence
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
->>>>>>> origin/main
 
 /**
  * Aggressively cleans the report text to remove emojis and special characters.
@@ -100,7 +86,6 @@ function formatStandupText(text: string): string {
 }
 
 export async function POST(request: Request) {
-<<<<<<< HEAD
   const auth = await authenticate(request);
   if ('response' in auth) return auth.response;
   const { user } = auth;
@@ -130,64 +115,6 @@ export async function POST(request: Request) {
     } else {
       cleanedDiffs = await fetchRecentDiffs(owner, repo, token);
       commitsUsed = cleanedDiffs ? 1 : 0;
-=======
-  try {
-    const { owner, repo, commitShas, userId, model } = await request.json();
-    const selectedModel = model || 'gemini-2.0-flash';
-
-    if (!owner || !repo) {
-      return NextResponse.json(
-        { success: false, error: 'Owner and repo are required fields.' },
-        { status: 400 }
-      );
-    }
-
-    // 1. Priority: x-github-token header (User-provided)
-    const headerToken = request.headers.get('x-github-token');
-    let token: string | undefined = headerToken || undefined;
-
-    // 2. Fallback: .env.local (ONLY in Dev)
-    if (!token && process.env.NODE_ENV === 'development') {
-      token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-    }
-
-    // 3. Fallback: Session
-    if (!token) {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      token = authSession?.provider_token || undefined;
-
-      // 4. Fallback: DB
-      if (!token && authSession?.user?.id) {
-        const { data: tokenData } = await supabaseAdmin
-          .from('user_tokens')
-          .select('provider_token')
-          .eq('user_id', authSession.user.id)
-          .single();
-        token = tokenData?.provider_token || undefined;
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'GitHub Token missing. Please check .env.local or sign in again.' },
-        { status: 401 }
-      );
-    } 
-
-    let cleanedDiffs = '';
-    let commitsUsed = 0;
-    const githubToken = token;
-
-    if (commitShas && commitShas.length > 0) {
-      const { fetchCommitDiff, cleanDiff } = require('@/lib/github');
-      const diffPromises = commitShas.map((sha: string) => fetchCommitDiff(owner, repo, sha, githubToken));
-      const diffs = await Promise.all(diffPromises);
-      cleanedDiffs = cleanDiff(diffs.join('\n\n---\n\n'));
-      commitsUsed = commitShas.length;
-    } else {
-      cleanedDiffs = await fetchRecentDiffs(owner, repo, githubToken);
-      commitsUsed = cleanedDiffs ? 1 : 0; 
->>>>>>> origin/main
     }
 
     let summaryText = 'No recent activity found.';
@@ -214,10 +141,7 @@ export async function POST(request: Request) {
       try {
         if (selectedModel.startsWith('gemini')) {
           console.log(`Using Gemini model: ${selectedModel}`);
-<<<<<<< HEAD
           const { model: geminiModel } = await import('@/lib/gemini');
-=======
->>>>>>> origin/main
           const result = await geminiModel.generateContent(prompt);
           summaryText = result.response.text();
         } else {
@@ -234,19 +158,11 @@ export async function POST(request: Request) {
         try {
           const fallbackCompletion = await groq.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
-<<<<<<< HEAD
             model: 'openai/gpt-oss-120b',
           });
           summaryText = fallbackCompletion.choices[0]?.message?.content || 'Fallback failed.';
         } catch (fallbackError: any) {
           throw new HttpError('All AI models failed to respond.', 502);
-=======
-            model: 'llama-3.1-8b-instant',
-          });
-          summaryText = fallbackCompletion.choices[0]?.message?.content || 'Fallback failed.';
-        } catch (fallbackError: any) {
-          throw new Error('All AI models failed to respond.');
->>>>>>> origin/main
         }
       }
 
@@ -254,7 +170,6 @@ export async function POST(request: Request) {
       summaryText = formatStandupText(summaryText);
     }
 
-<<<<<<< HEAD
     // Save to Supabase (scoped to the verified user)
     try {
       const { data, error } = await getSupabaseAdmin()
@@ -266,41 +181,6 @@ export async function POST(request: Request) {
       if (error) console.error('Database Sync Error:', error.message);
 
       return NextResponse.json({ success: true, summary: summaryText, data });
-=======
-    // Save to Supabase
-    try {
-      const currentUserId = userId;
-      if (currentUserId) {
-        const { data, error } = await supabaseAdmin
-          .from('history')
-          .insert([
-            { 
-              user_id: currentUserId,
-              owner, 
-              repo, 
-              content: summaryText,
-              commits_count: commitsUsed
-            }
-          ])
-          .select()
-          .single();
-        
-        if (error) console.error('Database Sync Error:', error.message);
-
-        return NextResponse.json({
-          success: true,
-          summary: summaryText,
-          data,
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        summary: summaryText,
-        warning: 'Summary generated but not saved (no user session).'
-      });
-
->>>>>>> origin/main
     } catch (dbError: any) {
       console.error('Database Insertion Failed:', dbError.message);
       return NextResponse.json({
@@ -310,16 +190,7 @@ export async function POST(request: Request) {
       });
     }
 
-<<<<<<< HEAD
   } catch (error) {
     return handleRouteError(error, 'generate');
-=======
-  } catch (error: any) {
-    console.error('API Error:', error.message);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Internal Server Error' },
-      { status: 500 }
-    );
->>>>>>> origin/main
   }
 }
