@@ -40,33 +40,49 @@ function repoApiPath(owner: string, repo: string): string {
 /**
  * Strips out unnecessary files and truncates large diffs to save LLM tokens.
  */
+const SKIP_BASENAMES = new Set([
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'bun.lockb',
+  'cargo.lock',
+  'poetry.lock',
+  'composer.lock',
+]);
+
+// Matched against the FILE NAME only, so `.svg` no longer swallows
+// `logo.svg.ts` / `Icon.svg.tsx` / `*.svg.test.ts`, and `.min.js` no longer
+// swallows `.min.json`.
+const SKIP_EXTENSIONS = [
+  '.svg', '.svgz', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.avif',
+  '.pdf', '.woff', '.woff2', '.ttf', '.otf', '.eot',
+  '.mp4', '.webm', '.mov', '.mp3', '.wav',
+  '.min.js', '.min.css', '.min.json', '.map',
+  '.snap', '.lock',
+];
+
+/** True when the file named in a `diff --git a/x b/y` header should be dropped. */
+function shouldSkipDiffFile(headerLine: string): boolean {
+  // Prefer the "b/" (new) path; fall back to the whole line.
+  const idx = headerLine.indexOf(' b/');
+  const path = (idx >= 0 ? headerLine.slice(idx + 3) : headerLine).replace(/^"|"$/g, '');
+  const lower = path.toLowerCase();
+  const base = lower.split('/').pop() ?? lower;
+
+  // Directory exclusion must match a full path segment, not any substring.
+  if (/(^|\/)node_modules(\/|$)/.test(lower)) return true;
+  if (SKIP_BASENAMES.has(base)) return true;
+  return SKIP_EXTENSIONS.some((ext) => base.endsWith(ext));
+}
+
 export function cleanDiff(rawDiff: string): string {
   const lines = rawDiff.split('\n');
   const filteredLines: string[] = [];
   let isSkipping = false;
 
-  const skipPatterns = [
-    'package-lock.json',
-    'yarn.lock',
-    'pnpm-lock.yaml',
-    '.svg',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.gif',
-    '.ico',
-    '.pdf',
-    '.woff',
-    '.woff2',
-    '.min.js',
-    '.min.css',
-    'node_modules',
-  ];
-
   for (const line of lines) {
     if (line.startsWith('diff --git')) {
-      // Check if this file should be skipped
-      isSkipping = skipPatterns.some(pattern => line.includes(pattern));
+      isSkipping = shouldSkipDiffFile(line);
     }
 
     if (!isSkipping) {

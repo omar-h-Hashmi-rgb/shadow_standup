@@ -22,6 +22,7 @@ export async function generateWithFallback(
   options?: {
     temperature?: number;
     responseMimeType?: string;
+    maxOutputTokens?: number;
   }
 ): Promise<string> {
   let lastError: Error | null = null;
@@ -41,6 +42,9 @@ export async function generateWithFallback(
         ],
         generationConfig: {
           temperature: options?.temperature ?? 0.1,
+          // Cap output so a long response cannot be cut off mid-string, which
+          // would make JSON.parse fail and silently degrade to canned text.
+          maxOutputTokens: options?.maxOutputTokens ?? 4096,
           ...(options?.responseMimeType && {
             responseMimeType: options.responseMimeType,
           }),
