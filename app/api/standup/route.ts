@@ -87,15 +87,23 @@ export async function POST(request: Request) {
     if (!token) return jsonError(tokenError || "GitHub token missing.", 401);
 
     const commits = await fetchCommits(owner, repo, token);
+    // Order messages by the requested SHAs so the numbered list lines up with
+    // the diff sections below (previously API order vs click order could drift).
     const recentCommits = commitShas.length
-      ? commits.filter((c: any) => commitShas.includes(c.sha))
+      ? commitShas
+          .map((sha: string) => commits.find((c: any) => c.sha === sha))
+          .filter(Boolean)
       : commits.slice(0, 10);
 
     const commitMessages = recentCommits.map((c: any) => c.message);
     // Dates are required for a standup: without them the model cannot tell
     // "yesterday" from "today". (Previously fetched, then thrown away.)
     const commitDates = recentCommits.map((c: any) => (c.date ? String(c.date) : null));
-    const author = recentCommits[0]?.author || "Unknown";
+    // Credit every author involved, not just the first commit's.
+    const authors = Array.from(
+      new Set(recentCommits.map((c: any) => c?.author).filter(Boolean))
+    ) as string[];
+    const author = authors.length > 0 ? authors.join(", ") : "Unknown";
 
     let gitDiff = "";
     if (commitShas.length) {
@@ -133,6 +141,7 @@ export async function POST(request: Request) {
         // Lazy import: a missing Gemini key only affects Gemini requests (which fall back to Groq below).
         const { generateWithFallback } = await import("@/lib/gemini");
         rawResponse = await generateWithFallback(fullPrompt, {
+          model: selectedModel,
           temperature: 0.1,
           responseMimeType: "application/json",
         });
@@ -144,6 +153,9 @@ export async function POST(request: Request) {
           ],
           model: selectedModel,
           temperature: 0.1,
+          // JSON mode: without it Groq may wrap the object in fences/prose,
+          // which the parser has to strip (and can fail on).
+          response_format: { type: "json_object" },
         });
         rawResponse = chatCompletion.choices[0]?.message?.content || "";
       }
@@ -158,6 +170,7 @@ export async function POST(request: Request) {
           ],
           model: "openai/gpt-oss-120b",
           temperature: 0.1,
+          response_format: { type: "json_object" },
         });
         rawResponse = fallback.choices[0]?.message?.content || "";
       } catch (groqError: any) {

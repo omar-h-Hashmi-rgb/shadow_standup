@@ -38,7 +38,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
   const [error, setError] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [selectedModel, setSelectedModel] = useState("gemini");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.8-flash");
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["discord", "slack", "trello", "jira", "teams"]);
@@ -127,6 +127,9 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
     setDeliveryResults(null);
 
     const [owner, repo] = selectedRepo.split("/");
+    // Use the repository's actual default branch rather than assuming "main".
+    const branch =
+      repos.find((r: any) => r.full_name === selectedRepo)?.default_branch || "main";
 
     try {
       const res = await apiFetch("/api/standup", {
@@ -138,7 +141,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
         body: JSON.stringify({
           owner,
           repo,
-          branch: "main",
+          branch,
           commitShas: selectedShas,
           userId,
           model: selectedModel,
@@ -374,7 +377,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
           <div className="panel-label">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M22 2L11 13" /><path d="M15 2h7v7" /></svg>
             AI standup summary
-            <span className="ai-badge">2-prompt pipeline</span>
+            <span className="ai-badge">AI analysis</span>
           </div>
 
           {!result && !loading && (
@@ -389,7 +392,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
             <div className="review-loading-state">
               <div className="review-loading-pulse" />
               <span className="spinner" />
-              <p>Running 2-prompt analysis pipeline...</p>
+              <p>Running AI analysis...</p>
             </div>
           )}
 

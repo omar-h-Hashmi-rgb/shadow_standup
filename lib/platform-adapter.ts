@@ -6,6 +6,20 @@ const HEALTH_EMOJI: Record<string, string> = {
   Low: "🔴",
 };
 
+/**
+ * Code-review detail every formatter previously dropped, so delivered messages
+ * carried only summary + three lists while the dashboard showed much more.
+ */
+function codeReviewSections(
+  cr: StandupAnalysis["code_review"]
+): { title: string; items: string[] }[] {
+  return [
+    { title: "Highlights", items: cr?.highlights ?? [] },
+    { title: "Code Risks", items: cr?.risks ?? [] },
+    { title: "Security & Debt Flags", items: cr?.security_or_debt_flags ?? [] },
+  ].filter((s) => s.items.length > 0);
+}
+
 export function formatForSlack(analysis: StandupAnalysis): string {
   const lines: string[] = [
     `*Standup Report — ${analysis.developer}*`,
@@ -40,6 +54,13 @@ export function formatForSlack(analysis: StandupAnalysis): string {
   }
 
   const cr = analysis.code_review;
+
+  for (const s of codeReviewSections(cr)) {
+    lines.push(`*${s.title}:*`);
+    s.items.forEach((item) => lines.push(`  • ${item}`));
+    lines.push("");
+  }
+
   lines.push(
     `*Code Health:* ${HEALTH_EMOJI[cr.code_health] || "⚪"} ${cr.code_health} | *Complexity:* ${cr.complexity_score}/10`
   );
@@ -80,6 +101,16 @@ export function formatForDiscord(analysis: StandupAnalysis): object {
     });
   }
 
+  // Discord caps a field value at 1024 chars.
+  for (const s of codeReviewSections(analysis.code_review)) {
+    const value = s.items.map((i) => `\`${i}\``).join("\n");
+    fields.push({
+      name: s.title,
+      value: value.length > 1000 ? `${value.slice(0, 1000)}…` : value,
+      inline: false,
+    });
+  }
+
   return {
     embeds: [
       {
@@ -110,6 +141,9 @@ export function formatForTrello(analysis: StandupAnalysis): { name: string; desc
   }
 
   const cr = analysis.code_review;
+  for (const s of codeReviewSections(cr)) {
+    sections.push(`* ${s.title} *\n${s.items.join("\n")}`);
+  }
   sections.push(`* Code Review *\nHealth: ${cr.code_health} | Complexity: ${cr.complexity_score}/10`);
 
   return {
@@ -134,6 +168,12 @@ export function formatForJira(analysis: StandupAnalysis): string {
   if (analysis.blockers_and_risks.length > 0) {
     lines.push("Blockers & Risks:");
     analysis.blockers_and_risks.forEach((i) => lines.push(`- ${i}`));
+    lines.push("");
+  }
+  for (const s of codeReviewSections(analysis.code_review)) {
+    lines.push(`${s.title}:`);
+    s.items.forEach((i) => lines.push(`- ${i}`));
+    lines.push("");
   }
 
   return lines.join("\n");
@@ -226,6 +266,9 @@ export function formatForTeams(analysis: StandupAnalysis): object {
       ...section("Yesterday's Progress", analysis.yesterday_progress, maxItems, itemMax),
       ...section("Today's Focus", analysis.today_focus, maxItems, itemMax),
       ...section("Blockers & Risks", analysis.blockers_and_risks, maxItems, itemMax),
+      ...codeReviewSections(analysis.code_review).flatMap((s) =>
+        section(s.title, s.items, maxItems, itemMax)
+      ),
       {
         type: "FactSet",
         separator: true,

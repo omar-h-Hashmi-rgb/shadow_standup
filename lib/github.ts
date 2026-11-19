@@ -229,6 +229,8 @@ export async function fetchUserRepositories(token: string) {
       name: repo.name,
       full_name: repo.full_name,
       owner: repo.owner.login,
+      // Needed so the client can send the real branch instead of assuming "main".
+      default_branch: repo.default_branch || "main",
     }));
   } catch (error: any) {
     console.error('Error fetching user repositories:', error.response?.data || error.message);

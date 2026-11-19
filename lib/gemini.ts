@@ -25,15 +25,21 @@ export async function generateWithFallback(
     maxOutputTokens?: number;
     /** Per-attempt upstream timeout. Without an AbortSignal a stalled call hangs forever. */
     timeoutMs?: number;
+    /** Gemini model id. Must start with "gemini-"; anything else uses the default. */
+    model?: string;
   }
 ): Promise<string> {
   let lastError: Error | null = null;
 
   for (let i = 0; i < clients.length; i++) {
     try {
-      const genModel = clients[i].getGenerativeModel({
-        model: "gemini-3.8-flash",
-      });
+      // Previously every gemini* request was hard-coded to one model, so the
+      // model picker silently did nothing for any other Gemini choice.
+      const modelId =
+        options?.model && options.model.startsWith("gemini-")
+          ? options.model
+          : "gemini-3.8-flash";
+      const genModel = clients[i].getGenerativeModel({ model: modelId });
 
       const result = await genModel.generateContent(
         {
