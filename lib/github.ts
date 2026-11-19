@@ -1,4 +1,36 @@
 import axios from 'axios';
+import { HttpError } from './http';
+
+/**
+ * Maps an upstream GitHub failure to a client-safe HttpError so callers surface
+ * an actionable message instead of a bare "Internal Server Error".
+ * (handleRouteError only exposes HttpError messages; raw axios errors are masked.)
+ */
+function githubHttpError(error: any): Error {
+  const status: number | undefined = error?.response?.status;
+  const upstream = typeof error?.response?.data?.message === 'string'
+    ? error.response.data.message
+    : '';
+
+  if (status === 401) {
+    return new HttpError(
+      'Your GitHub token is invalid or expired. Add a new Personal Access Token in Settings.',
+      401
+    );
+  }
+  if (status === 403) {
+    return new HttpError(
+      /rate limit/i.test(upstream)
+        ? 'GitHub rate limit reached. Wait a minute and try again.'
+        : 'GitHub denied access for this token. Check that it has access to the repositories you selected.',
+      403
+    );
+  }
+  if (status === 404) {
+    return new HttpError('Repository not found, or your token cannot access it.', 404);
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
 
 /** Builds `/repos/<owner>/<repo>` with each segment URL-encoded (defence against path injection). */
 function repoApiPath(owner: string, repo: string): string {
@@ -93,7 +125,7 @@ export async function fetchRecentDiffs(owner: string, repo: string, token: strin
     return cleanDiff(combinedDiff);
   } catch (error: any) {
     console.error('Error fetching GitHub diffs:', error.response?.data || error.message);
-    throw error;
+    throw githubHttpError(error);
   }
 }
 
@@ -120,7 +152,7 @@ export async function fetchCommits(owner: string, repo: string, token: string) {
     }));
   } catch (error: any) {
     console.error('Fetch Commits Error:', error.message);
-    throw error;
+    throw githubHttpError(error);
   }
 }
 
@@ -173,7 +205,7 @@ export async function fetchUserRepositories(token: string) {
     }));
   } catch (error: any) {
     console.error('Error fetching user repositories:', error.response?.data || error.message);
-    throw error;
+    throw githubHttpError(error);
   }
 }
 
@@ -226,7 +258,7 @@ export async function fetchRepoTree(
     return { ref, files, truncated: Boolean(data.truncated) };
   } catch (error: any) {
     console.error('Fetch Tree Error:', error.response?.status || error.message);
-    throw error;
+    throw githubHttpError(error);
   }
 }
 
