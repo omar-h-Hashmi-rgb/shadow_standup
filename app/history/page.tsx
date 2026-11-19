@@ -111,11 +111,19 @@ export default function HistoryPage() {
       const findings =
         (Array.isArray(cr.risks) ? cr.risks.length : 0) +
         (Array.isArray(cr.security_or_debt_flags) ? cr.security_or_debt_flags.length : 0);
+
+      // Support both the migrated shape (owner + repo) and the legacy shape
+      // (repo_name = "owner/repo") so rows from either schema render.
+      const repoFull = r.owner && r.repo ? `${r.owner}/${r.repo}` : String(r.repo_name || "");
+      const [rowOwner, rowRepo] = repoFull.includes("/")
+        ? [repoFull.slice(0, repoFull.indexOf("/")), repoFull.slice(repoFull.indexOf("/") + 1)]
+        : ["", repoFull];
+
       rows.push({
         id: r.id,
         source: "standup" as const,
-        owner: r.owner,
-        repo: r.repo,
+        owner: rowOwner,
+        repo: rowRepo,
         created_at: r.created_at,
         content: buildStandupContent(r),
         commits_count: null,

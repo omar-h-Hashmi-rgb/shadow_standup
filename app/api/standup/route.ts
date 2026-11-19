@@ -284,7 +284,7 @@ export async function POST(request: Request) {
     await Promise.allSettled(deliveries);
 
     try {
-      const { error } = await getSupabaseAdmin().from("standups").insert({
+      const payload = {
         user_id: user.id,
         owner,
         repo,
@@ -298,7 +298,22 @@ export async function POST(request: Request) {
         blockers_and_risks: analysis.blockers_and_risks,
         code_review: analysis.code_review,
         platforms_delivered: Object.keys(webhookResults).filter((k) => webhookResults[k]),
-      });
+      };
+
+      let { error } = await getSupabaseAdmin().from("standups").insert(payload);
+
+      // The hosted table may still have the legacy shape (repo_name only)
+      // because 20260823184201_standups.sql was never applied. Save what fits
+      // rather than losing the report entirely.
+      if (error && /column|schema/i.test(error.message || "")) {
+        console.error("[standup] Full insert failed, retrying legacy shape:", error.message);
+        ({ error } = await getSupabaseAdmin().from("standups").insert({
+          user_id: user.id,
+          repo_name: `${owner}/${repo}`,
+          summary: analysis.summary,
+        }));
+      }
+
       if (error) console.error("[standup] Database insert failed:", error.message);
     } catch (dbError: any) {
       console.error("[standup] Database insert failed:", dbError.message);
