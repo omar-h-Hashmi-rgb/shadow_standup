@@ -169,8 +169,15 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
       } else {
         setError(data.error || "Something went wrong.");
       }
-    } catch {
-      setError("Connection failed.");
+    } catch (err: any) {
+      // AbortSignal.timeout() fires when the server never responds — say so
+      // instead of a generic failure, and make clear nothing was delivered.
+      const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
+      setError(
+        timedOut
+          ? "The request timed out before the server responded. Nothing was generated or delivered — please try again."
+          : "Connection failed."
+      );
     } finally {
       setLoading(false);
     }

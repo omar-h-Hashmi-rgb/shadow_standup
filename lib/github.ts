@@ -2,6 +2,13 @@ import axios from 'axios';
 import { HttpError } from './http';
 
 /**
+ * Every GitHub request must be bounded. axios defaults to `timeout: 0`, which
+ * means NO timeout is ever created — a single stalled socket then leaves the
+ * awaiting promise pending forever (the "Generating…" spinner that never ends).
+ */
+const GITHUB_TIMEOUT_MS = 20000;
+
+/**
  * Maps an upstream GitHub failure to a client-safe HttpError so callers surface
  * an actionable message instead of a bare "Internal Server Error".
  * (handleRouteError only exposes HttpError messages; raw axios errors are masked.)
@@ -106,6 +113,7 @@ export function cleanDiff(rawDiff: string): string {
 export async function fetchRecentDiffs(owner: string, repo: string, token: string) {
   const githubApi = axios.create({
     baseURL: 'https://api.github.com',
+    timeout: GITHUB_TIMEOUT_MS,
     headers: {
       Authorization: `token ${token}`,
       Accept: 'application/vnd.github.v3+json',
@@ -153,6 +161,7 @@ export async function fetchCommits(owner: string, repo: string, token: string) {
     const response = await axios.get(
       `https://api.github.com${repoApiPath(owner, repo)}/commits?per_page=30`,
       {
+        timeout: GITHUB_TIMEOUT_MS,
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/vnd.github.v3+json',
@@ -180,6 +189,7 @@ export async function fetchCommitDiff(owner: string, repo: string, sha: string, 
     const response = await axios.get(
       `https://api.github.com${repoApiPath(owner, repo)}/commits/${encodeURIComponent(sha)}`,
       {
+        timeout: GITHUB_TIMEOUT_MS,
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/vnd.github.v3.diff',
@@ -199,6 +209,7 @@ export async function fetchCommitDiff(owner: string, repo: string, sha: string, 
 export async function fetchUserRepositories(token: string) {
   const githubApi = axios.create({
     baseURL: 'https://api.github.com',
+    timeout: GITHUB_TIMEOUT_MS,
     headers: {
       Authorization: `token ${token}`,
       Accept: 'application/vnd.github.v3+json',

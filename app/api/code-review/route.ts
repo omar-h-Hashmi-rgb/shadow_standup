@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+
+// Fetches GitHub content then runs an LLM call — bound it explicitly so a
+// stalled upstream cannot run past the platform's function limit.
+export const maxDuration = 300;
 import { authenticate, resolveGitHubToken } from '@/lib/auth';
 import { buildReviewInput, type ReviewRequestBody } from '@/lib/review-input';
 import { generateReviewText } from '@/lib/review-engine';

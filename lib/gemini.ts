@@ -23,6 +23,8 @@ export async function generateWithFallback(
     temperature?: number;
     responseMimeType?: string;
     maxOutputTokens?: number;
+    /** Per-attempt upstream timeout. Without an AbortSignal a stalled call hangs forever. */
+    timeoutMs?: number;
   }
 ): Promise<string> {
   let lastError: Error | null = null;
@@ -33,23 +35,28 @@ export async function generateWithFallback(
         model: "gemini-3.8-flash",
       });
 
-      const result = await genModel.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
+      const result = await genModel.generateContent(
+        {
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: options?.temperature ?? 0.1,
+            // Cap output so a long response cannot be cut off mid-string, which
+            // would make JSON.parse fail and silently degrade to canned text.
+            maxOutputTokens: options?.maxOutputTokens ?? 4096,
+            ...(options?.responseMimeType && {
+              responseMimeType: options.responseMimeType,
+            }),
           },
-        ],
-        generationConfig: {
-          temperature: options?.temperature ?? 0.1,
-          // Cap output so a long response cannot be cut off mid-string, which
-          // would make JSON.parse fail and silently degrade to canned text.
-          maxOutputTokens: options?.maxOutputTokens ?? 4096,
-          ...(options?.responseMimeType && {
-            responseMimeType: options.responseMimeType,
-          }),
         },
-      });
+        // Without this the SDK never creates an AbortSignal, so a stalled
+        // Google connection leaves the calling route pending forever.
+        { timeout: options?.timeoutMs ?? 60000 }
+      );
 
       return result.response.text();
     } catch (error: any) {

@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+
+// Fetches GitHub diffs then runs an LLM call — bound it explicitly so a
+// stalled upstream cannot run past the platform's function limit.
+export const maxDuration = 300;
 import { fetchRecentDiffs, fetchCommitDiff, cleanDiff } from '@/lib/github';
 import { groq } from '@/lib/groq';
 import { authenticate, resolveGitHubToken } from '@/lib/auth';

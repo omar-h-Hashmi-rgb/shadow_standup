@@ -16,6 +16,10 @@ import { assertOwnerRepo, assertShas, clampString, resolveModel } from "@/lib/va
 const PLATFORMS = ["discord", "slack", "trello", "jira", "teams"] as const;
 type Platform = (typeof PLATFORMS)[number];
 
+// This handler awaits GitHub + an LLM + five delivery calls, so bound it
+// explicitly. Past the limit Vercel returns FUNCTION_INVOCATION_TIMEOUT (504).
+export const maxDuration = 300;
+
 function buildFallbackAnalysis(params: {
   author: string;
   repo: string;
@@ -28,7 +32,8 @@ function buildFallbackAnalysis(params: {
     developer: params.author,
     repository: params.repo,
     branch: params.branch,
-    summary: params.rawResponse.slice(0, 500) || `Standup for ${params.repo} — ${params.commitMessages.length} commits analyzed.`,
+    // The model produced nothing usable — never ship its raw text as a summary.
+    summary: `Standup for ${params.repo} — ${params.commitMessages.length} commits analyzed (AI summary unavailable).`,
     yesterday_progress: params.commitMessages.slice(0, 10),
     today_focus: ["Continue development based on review findings"],
     blockers_and_risks: [],
@@ -87,6 +92,9 @@ export async function POST(request: Request) {
       : commits.slice(0, 10);
 
     const commitMessages = recentCommits.map((c: any) => c.message);
+    // Dates are required for a standup: without them the model cannot tell
+    // "yesterday" from "today". (Previously fetched, then thrown away.)
+    const commitDates = recentCommits.map((c: any) => (c.date ? String(c.date) : null));
     const author = recentCommits[0]?.author || "Unknown";
 
     let gitDiff = "";
@@ -111,6 +119,7 @@ export async function POST(request: Request) {
       repository: repo,
       branch,
       commitMessages,
+      commitDates,
       mlMetrics,
       gitDiff: gitDiff.slice(0, 50000),
     });
@@ -156,6 +165,15 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!rawResponse.trim()) {
+      // Both providers failed. Returning canned text with success:true would
+      // silently masquerade as a real standup and toast "Standup generated!".
+      return jsonError(
+        "The AI model did not return a result. Please try again in a moment.",
+        502
+      );
+    }
+
     let analysis = parseStandupAnalysis(rawResponse);
 
     if (!analysis) {
@@ -172,59 +190,85 @@ export async function POST(request: Request) {
 
     console.log("[standup] Delivering to:", activePlatforms);
 
+    // Deliveries are independent (see note above), so run them concurrently.
+    // Serially they stacked 5 × 15s = 75s onto the critical path and pushed
+    // the whole handler toward the platform time limit.
+    const deliveries: Promise<void>[] = [];
+
     if (activePlatforms.includes("discord") || discordWebhook) {
       const url = discordWebhook || userSettings.discord_webhook_url || process.env.DISCORD_WEBHOOK_URL;
       if (url) {
-        webhookResults.discord = await sendStandupToDiscord(url, analysis);
-        console.log("[standup] Discord result:", webhookResults.discord);
+        deliveries.push(
+          sendStandupToDiscord(url, analysis).then((ok) => {
+            webhookResults.discord = ok;
+            console.log("[standup] Discord result:", ok);
+          })
+        );
       }
     }
 
     if (activePlatforms.includes("slack") || slackWebhook) {
       const url = slackWebhook || userSettings.slack_webhook_url || process.env.SLACK_WEBHOOK_URL;
       if (url) {
-        webhookResults.slack = await sendStandupToSlack(url, analysis);
-        console.log("[standup] Slack result:", webhookResults.slack);
+        deliveries.push(
+          sendStandupToSlack(url, analysis).then((ok) => {
+            webhookResults.slack = ok;
+            console.log("[standup] Slack result:", ok);
+          })
+        );
       }
     }
 
     if (activePlatforms.includes("teams")) {
       if (isTeamsConfigured()) {
-        webhookResults.teams = await sendStandupToTeams(analysis);
-        console.log("[standup] Teams result:", webhookResults.teams);
+        deliveries.push(
+          sendStandupToTeams(analysis).then((ok) => {
+            webhookResults.teams = ok;
+            console.log("[standup] Teams result:", ok);
+          })
+        );
       } else {
         webhookSkipped.teams = "not_configured";
       }
     }
 
     if (activePlatforms.includes("trello")) {
-      const card = await createTrelloCard({
-        name: `Standup: ${analysis.developer} — ${analysis.repository}`,
-        desc: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.join("\n")}\n\nToday:\n${analysis.today_focus.join("\n")}`,
-        credentials: {
-          apiKey: userSettings.trello_api_key,
-          token: userSettings.trello_token,
-          listId: userSettings.trello_list_id,
-        },
-      });
-      webhookResults.trello = card.success;
-      console.log("[standup] Trello result:", card.success, card.url || card.error);
+      deliveries.push(
+        createTrelloCard({
+          name: `Standup: ${analysis.developer} — ${analysis.repository}`,
+          desc: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.join("\n")}\n\nToday:\n${analysis.today_focus.join("\n")}`,
+          credentials: {
+            apiKey: userSettings.trello_api_key,
+            token: userSettings.trello_token,
+            listId: userSettings.trello_list_id,
+          },
+        }).then((card) => {
+          webhookResults.trello = card.success;
+          console.log("[standup] Trello result:", card.success, card.url || card.error);
+        })
+      );
     }
 
     if (activePlatforms.includes("jira")) {
-      const issue = await createJiraIssue({
-        title: `Standup: ${analysis.developer} — ${analysis.repository}`,
-        description: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.map((i) => "- " + i).join("\n")}\n\nToday:\n${analysis.today_focus.map((i) => "- " + i).join("\n")}`,
-        credentials: {
-          domain: userSettings.jira_domain,
-          email: userSettings.jira_email,
-          token: userSettings.jira_api_token,
-          projectKey: userSettings.jira_project_key,
-        },
-      });
-      webhookResults.jira = issue.success;
-      console.log("[standup] Jira result:", issue.success, issue.url || issue.error);
+      deliveries.push(
+        createJiraIssue({
+          title: `Standup: ${analysis.developer} — ${analysis.repository}`,
+          description: `Summary: ${analysis.summary}\n\nYesterday:\n${analysis.yesterday_progress.map((i) => "- " + i).join("\n")}\n\nToday:\n${analysis.today_focus.map((i) => "- " + i).join("\n")}`,
+          credentials: {
+            domain: userSettings.jira_domain,
+            email: userSettings.jira_email,
+            token: userSettings.jira_api_token,
+            projectKey: userSettings.jira_project_key,
+          },
+        }).then((issue) => {
+          webhookResults.jira = issue.success;
+          console.log("[standup] Jira result:", issue.success, issue.url || issue.error);
+        })
+      );
     }
+
+    // One rejecting delivery must never sink the others or the response.
+    await Promise.allSettled(deliveries);
 
     try {
       const { error } = await getSupabaseAdmin().from("standups").insert({
