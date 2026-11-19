@@ -463,6 +463,18 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
                 </div>
               )}
 
+              {result.code_review.risks.length > 0 && (
+                <div className="review-blockers-card" style={{ background: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.2)" }}>
+                  <div className="review-blockers-header" style={{ color: "rgb(248,113,113)" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                    Code Risks
+                  </div>
+                  {result.code_review.risks.map((item, i) => (
+                    <div key={i} className="review-blocker-item" style={{ color: "rgb(248,113,113)" }}>{item}</div>
+                  ))}
+                </div>
+              )}
+
               {result.code_review.security_or_debt_flags.length > 0 && (
                 <div className="review-blockers-card" style={{ background: "var(--amber-dim)", borderColor: "rgba(251,191,36,0.2)" }}>
                   <div className="review-blockers-header" style={{ color: "var(--amber)" }}>
