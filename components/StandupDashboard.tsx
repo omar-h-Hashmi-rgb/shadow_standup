@@ -38,7 +38,7 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
   const [error, setError] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [selectedModel, setSelectedModel] = useState("gemini-3.8-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["discord", "slack", "trello", "jira", "teams"]);
@@ -46,7 +46,8 @@ export default function StandupDashboard({ userId }: { userId?: string }) {
   const [deliveryResults, setDeliveryResults] = useState<Record<string, boolean> | null>(null);
 
   const modelOptions = [
-    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash (Recommended)" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash (Recommended)" },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash (may be overloaded)" },
     { id: "openai/gpt-oss-120b", name: "GPT OSS 120B" },
     { id: "qwen/qwen3.8-27b", name: "Qwen 3.8 27B" },
   ];

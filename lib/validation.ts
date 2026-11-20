@@ -99,6 +99,7 @@ export function assertUuid(value: unknown, label = "id"): string {
 // Prevents callers from pointing the server's API keys at arbitrary models.
 
 export const ALLOWED_MODELS = new Set([
+  "gemini-2.5-flash",
   "gemini-3.8-flash",
   "openai/gpt-oss-120b",
   "qwen/qwen3.8-27b",

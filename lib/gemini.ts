@@ -13,8 +13,13 @@ if (keys.length === 0) {
 
 const clients = keys.map((key) => new GoogleGenerativeAI(key));
 
+// The 3.x flash models currently answer 503 (overloaded) for this key, which
+// surfaces as a multi-minute "hang" because the SDK retries with backoff.
+// 2.5-flash responds reliably and is the safe default.
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
 export const model = clients[0].getGenerativeModel({
-  model: "gemini-3.8-flash",
+  model: DEFAULT_GEMINI_MODEL,
 });
 
 export async function generateWithFallback(
@@ -38,7 +43,7 @@ export async function generateWithFallback(
       const modelId =
         options?.model && options.model.startsWith("gemini-")
           ? options.model
-          : "gemini-3.8-flash";
+          : DEFAULT_GEMINI_MODEL;
       const genModel = clients[i].getGenerativeModel({ model: modelId });
 
       const result = await genModel.generateContent(
@@ -61,7 +66,9 @@ export async function generateWithFallback(
         },
         // Without this the SDK never creates an AbortSignal, so a stalled
         // Google connection leaves the calling route pending forever.
-        { timeout: options?.timeoutMs ?? 60000 }
+        // 30s: the 3.x models answer 503 quickly, but the SDK's retry backoff
+        // can stretch a single attempt well past a minute.
+        { timeout: options?.timeoutMs ?? 30000 }
       );
 
       return result.response.text();

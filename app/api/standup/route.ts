@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate, resolveGitHubToken } from "@/lib/auth";
 import { fetchRecentDiffs, fetchCommits, cleanDiff } from "@/lib/github";
 import { groq } from "@/lib/groq";
-import { ANALYSIS_PROMPT, buildAnalysisInput, parseStandupAnalysis, type StandupAnalysis } from "@/lib/prompts";
+import { ANALYSIS_PROMPT, buildAnalysisInput, parseStandupAnalysis, MAX_DIFF_CHARS, type StandupAnalysis } from "@/lib/prompts";
 import { sendStandupToDiscord, sendStandupToSlack, sendStandupToTeams } from "@/lib/webhooks";
 import { isTeamsConfigured } from "@/lib/teams";
 import { createTrelloCard } from "@/lib/trello";
@@ -47,6 +47,37 @@ function buildFallbackAnalysis(params: {
   };
 }
 
+/**
+ * Groq chat completion in JSON mode.
+ *
+ * The free tier allows 8,000 tokens/minute, so a large diff returns HTTP 413
+ * (rate_limit_exceeded). Retry once with a much smaller payload rather than
+ * losing the whole standup.
+ */
+async function groqJSON(systemPrompt: string, userPrompt: string, model: string) {
+  const call = (user: string) =>
+    groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: user },
+      ],
+      model,
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+    });
+
+  try {
+    return await call(userPrompt);
+  } catch (error: any) {
+    const tooLarge =
+      error?.status === 413 ||
+      /too large|rate_limit_exceeded|tokens per minute/i.test(error?.message || "");
+    if (!tooLarge) throw error;
+    console.warn("[standup] Groq rejected the payload size — retrying with a smaller prompt.");
+    return await call(userPrompt.slice(0, Math.floor(userPrompt.length * 0.35)));
+  }
+}
+
 export async function POST(request: Request) {
   const auth = await authenticate(request);
   if ("response" in auth) return auth.response;
@@ -70,7 +101,7 @@ export async function POST(request: Request) {
     const { owner, repo } = assertOwnerRepo(body.owner, body.repo);
     const commitShas = assertShas(body.commitShas);
     const branch = clampString(body.branch, 100).trim() || "main";
-    const selectedModel = resolveModel(body.model, "gemini");
+    const selectedModel = resolveModel(body.model, "gemini-2.5-flash");
 
     if (body.platforms !== undefined && !Array.isArray(body.platforms)) {
       throw new HttpError("platforms must be an array.", 400);
@@ -129,7 +160,7 @@ export async function POST(request: Request) {
       commitMessages,
       commitDates,
       mlMetrics,
-      gitDiff: gitDiff.slice(0, 50000),
+      gitDiff: gitDiff.slice(0, MAX_DIFF_CHARS),
     });
 
     const fullPrompt = `${ANALYSIS_PROMPT}\n\n---\n\nINPUT DATA:\n${promptInput}`;
@@ -146,32 +177,14 @@ export async function POST(request: Request) {
           responseMimeType: "application/json",
         });
       } else {
-        const chatCompletion = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: ANALYSIS_PROMPT },
-            { role: "user", content: promptInput },
-          ],
-          model: selectedModel,
-          temperature: 0.1,
-          // JSON mode: without it Groq may wrap the object in fences/prose,
-          // which the parser has to strip (and can fail on).
-          response_format: { type: "json_object" },
-        });
+        const chatCompletion = await groqJSON(ANALYSIS_PROMPT, promptInput, selectedModel);
         rawResponse = chatCompletion.choices[0]?.message?.content || "";
       }
       console.log("[standup] AI response length:", rawResponse.length);
     } catch (aiError: any) {
       console.error("[standup] AI failed, trying Groq fallback...", aiError.message);
       try {
-        const fallback = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: ANALYSIS_PROMPT },
-            { role: "user", content: promptInput },
-          ],
-          model: "openai/gpt-oss-120b",
-          temperature: 0.1,
-          response_format: { type: "json_object" },
-        });
+        const fallback = await groqJSON(ANALYSIS_PROMPT, promptInput, "openai/gpt-oss-120b");
         rawResponse = fallback.choices[0]?.message?.content || "";
       } catch (groqError: any) {
         console.error("[standup] Groq also failed:", groqError.message);

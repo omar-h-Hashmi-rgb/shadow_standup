@@ -18,6 +18,16 @@ export interface StandupAnalysis {
   };
 }
 
+/**
+ * Maximum characters of diff sent to the model.
+ *
+ * Groq's free tier allows only 8,000 tokens/minute; a 50k-char diff is ~13k
+ * tokens and returns HTTP 413 (rate_limit_exceeded), which used to take out the
+ * whole fallback path. ~16k chars ≈ 4k tokens leaves room for the prompt and
+ * the JSON response inside that budget.
+ */
+export const MAX_DIFF_CHARS = 16000;
+
 export const ANALYSIS_PROMPT = `You are an expert engineering standup analyst. You are given git diffs, commit messages (with dates), and repository metadata. Produce ONE structured standup report.
 
 OUTPUT FORMAT — return ONLY valid JSON. No markdown fences, no commentary, no trailing text.
@@ -97,7 +107,7 @@ export function buildAnalysisInput(params: {
     `  Complexity estimate: ${params.mlMetrics.complexity_estimate}/10`,
     ``,
     `Git Diff:`,
-    params.gitDiff.slice(0, 50000),
+    params.gitDiff.slice(0, MAX_DIFF_CHARS),
   ].join("\n");
 }
 
